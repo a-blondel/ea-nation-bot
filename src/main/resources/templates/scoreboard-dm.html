@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+    <head>
+        <title>MOH: Heroes - Deathmatch Scoreboard</title>
+        <style th:utext="${styles}"></style>
+        
+        <!-- included the CSS like this, if this doesn't work just remove and your old method should work -->
+        <link rel="stylesheet" href="../static/styles.css"/>
+
+        <!-- if these fonts don't work just let me know and we can change them -->
+        <link rel="preconnect" href="https://fonts.googleapis.com"/>
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin=""/>
+        <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;0,600;0,700;1,300;1,400;1,500;1,600;1,700&amp;family=EB+Garamond:ital,wght@0,400..800;1,400..800&amp;display=swap" rel="stylesheet"/>
+    </head>
+
+    <!-- Set the class here to correspond to the background image -->
+    <body class="holland-bridge">
+        <div class="wrap">
+            <div class="game-details">
+                <h1>Holland Bridge: Deathmatch</h1>
+                <h3 class="date">12/11/2024 - 1:13 PM</h3>
+                <h3 class="game" th:text="${gameName}">Michael's Lobby</h3>
+            </div>
+
+            <div class="scoreboard">
+                <table>
+                    <thead>
+                        <th></th>
+                        <th>Score</th>
+                        <th>Kills</th>
+                        <th>Deaths</th>
+                    </thead>
+                    <tbody>
+                        <!-- player rows -->
+                        <tr>
+                            <td><strong>Player Name</strong></td>
+                            <td>10</td>
+                            <td>20</td>
+                            <td>10</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Player Name</strong></td>
+                            <td>10</td>
+                            <td>20</td>
+                            <td>10</td>
+                        </tr>
+
+                        <!-- blank rows -->
+                        <tr><td colspan="4"></td></tr>
+                        <tr><td colspan="4"></td></tr>
+                        <tr><td colspan="4"></td></tr>
+                        <tr><td colspan="4"></td></tr>
+                        <tr><td colspan="4"></td></tr>
+                        <tr><td colspan="4"></td></tr>
+                        <tr><td colspan="4"></td></tr>
+                        <tr><td colspan="4"></td></tr>
+                        <tr><td colspan="4"></td></tr>
+                        <tr><td colspan="4"></td></tr>
+                        <tr><td colspan="4"></td></tr>
+                        <tr><td colspan="4"></td></tr>
+                        <tr><td colspan="4"></td></tr>
+                        <tr><td colspan="4"></td></tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <div class="game-result">
+                <div class="result">
+                    <p>Labeo Wins the Battle</p>
+                </div>
+            </div>
+        </div>
+    </body>
+</html>
