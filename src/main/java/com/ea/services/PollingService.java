@@ -7,7 +7,6 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 
-import javax.annotation.PostConstruct;
 import java.util.List;
 
 @RequiredArgsConstructor
@@ -19,15 +18,7 @@ public class PollingService {
     private final GameRepository gameRepository;
     private final ScoreboardService scoreboardService;
 
-    /**
-     * TO REMOVE
-     */
-    @PostConstruct
-    public void init() {
-        pollDatabase();
-    }
-
-    //@Scheduled(fixedRate = 20000)
+    @Scheduled(fixedRate = 20000)
     public void pollDatabase() {
         List<GameEntity> mohhGames = gameRepository.findByVersInAndEndTimeIsNotNull(vers);
 

@@ -4,17 +4,14 @@
         <title>MOH: Heroes - Deathmatch Scoreboard</title>
         <style th:utext="${styles}"></style>
         
-        <!-- included the CSS like this, if this doesn't work just remove and your old method should work -->
         <link rel="stylesheet" href="../static/styles.css"/>
 
-        <!-- if these fonts don't work just let me know and we can change them -->
         <link rel="preconnect" href="https://fonts.googleapis.com"/>
         <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin=""/>
         <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;0,600;0,700;1,300;1,400;1,500;1,600;1,700&amp;family=EB+Garamond:ital,wght@0,400..800;1,400..800&amp;display=swap" rel="stylesheet"/>
     </head>
 
-    <!-- Set the class here to correspond to the background image -->
-    <body class="holland-bridge">
+    <body th:style="'background-image: url(' + ${backgroundImageDataUrl} + ');'">
         <div class="wrap">
             <div class="game-details">
                 <h1>Holland Bridge: Deathmatch</h1>

@@ -24,10 +24,6 @@ body {
     color: #fff;
 }
 
-body.holland-bridge {
-    background-image: url('holland-bridge.png');
-}
-
 body:before {
     content: '';
     width: 100%;

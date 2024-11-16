@@ -1,6 +1,7 @@
 package com.ea.services;
 
 import com.ea.entities.GameEntity;
+import lombok.RequiredArgsConstructor;
 import org.openqa.selenium.WebDriver;
 import org.openqa.selenium.chrome.ChromeDriver;
 import org.openqa.selenium.chrome.ChromeOptions;
@@ -18,32 +19,27 @@ import java.nio.file.StandardCopyOption;
 import java.util.Base64;
 
 @Service
+@RequiredArgsConstructor
 public class ScoreboardService {
 
     private final TemplateEngine templateEngine;
-
-    public ScoreboardService(TemplateEngine templateEngine) {
-        this.templateEngine = templateEngine;
-    }
 
     public void generateScoreboard(GameEntity game) {
         try {
             Context context = new Context();
             context.setVariable("gameName", game.getName());
 
-            // Read CSS content
+            // Read CSS content without modifications
             String cssContent = new String(Files.readAllBytes(Paths.get("src/main/resources/static/styles.css")), StandardCharsets.UTF_8);
-
-            // Read and encode the background image
-            byte[] imageBytes = Files.readAllBytes(Paths.get("src/main/resources/static/holland-bridge.png"));
-            String base64Image = Base64.getEncoder().encodeToString(imageBytes);
-            String dataUri = "data:image/png;base64," + base64Image;
-
-            // Replace the image URL in CSS with the Data URI
-            cssContent = cssContent.replace("url('holland-bridge.png')", "url('" + dataUri + "')");
-
             context.setVariable("styles", cssContent);
 
+            // Read and encode the background image
+            byte[] imageBytes = Files.readAllBytes(Paths.get("src/main/resources/static/images/holland-bridge.png"));
+            String base64Image = Base64.getEncoder().encodeToString(imageBytes);
+            String backgroundImageDataUrl = "data:image/png;base64," + base64Image;
+            context.setVariable("backgroundImageDataUrl", backgroundImageDataUrl);
+
+            // Generate the HTML content
             String htmlContent = templateEngine.process("scoreboard-dm", context);
 
             // Save HTML content to a temporary file
@@ -52,7 +48,8 @@ public class ScoreboardService {
 
             // Set up headless Chrome
             ChromeOptions options = new ChromeOptions();
-            options.addArguments("--headless", "--disable-gpu", "--window-size=1920,1080", "--hide-scrollbars");
+            options.addArguments("--headless=new");
+            options.addArguments("--disable-gpu", "--window-size=1920,1080", "--hide-scrollbars");
             WebDriver driver = new ChromeDriver(options);
 
             // Load the HTML file
@@ -66,7 +63,9 @@ public class ScoreboardService {
             if (!imageDir.exists()) {
                 imageDir.mkdirs();
             }
-            Files.copy(screenshot.toPath(), Paths.get(imageDir.getPath(), "scoreboard.png"), StandardCopyOption.REPLACE_EXISTING);
+            Files.copy(screenshot.toPath(),
+                    Paths.get(imageDir.getPath(), "scoreboard.png"),
+                    StandardCopyOption.REPLACE_EXISTING);
 
             // Clean up
             driver.quit();
