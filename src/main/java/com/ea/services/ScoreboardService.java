@@ -2,6 +2,7 @@ package com.ea.services;
 
 import com.ea.entities.GameEntity;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.openqa.selenium.WebDriver;
 import org.openqa.selenium.chrome.ChromeDriver;
 import org.openqa.selenium.chrome.ChromeOptions;
@@ -18,6 +19,7 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.StandardCopyOption;
 import java.util.Base64;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class ScoreboardService {
@@ -25,6 +27,7 @@ public class ScoreboardService {
     private final TemplateEngine templateEngine;
 
     public void generateScoreboard(GameEntity game) {
+        log.info("Generating scoreboard for game #{}", game.getId());
         try {
             Context context = new Context();
             context.setVariable("gameName", game.getName());

@@ -42,6 +42,8 @@ public class PollingService {
             return paramEntity;
         });
 
+        log.info("Last fetch time: {}", lastFetchTimeEntity.getParamValue());
+
         LocalDateTime lastFetchTime = LocalDateTime.parse(lastFetchTimeEntity.getParamValue(), DateTimeFormatter.ofPattern(DATETIME_FORMAT));
         LocalDateTime currentFetchTime = LocalDateTime.now();
 
