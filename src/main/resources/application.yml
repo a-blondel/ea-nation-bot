@@ -11,18 +11,14 @@ spring:
 
 discord.token: ${DISCORD_TOKEN}
 
+dns.name: ${DNS_NAME}
+
 ---
 
 spring:
   config:
     activate:
       on-profile: dev
-  h2:
-    console:
-      enabled: true
-      path: /h2
-      settings:
-        web-allow-others: true
   datasource:
     url: jdbc:h2:mem:mohh_db;DB_CLOSE_DELAY=-1;INIT=CREATE SCHEMA IF NOT EXISTS public;
     username: sa

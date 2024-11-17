@@ -19,5 +19,5 @@ public class ParamEntity {
     @Id
     private String paramKey;
 
-    private LocalDateTime paramValue;
+    private String paramValue;
 }
