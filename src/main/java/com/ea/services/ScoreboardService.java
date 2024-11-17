@@ -64,7 +64,7 @@ public class ScoreboardService {
                 imageDir.mkdirs();
             }
             Files.copy(screenshot.toPath(),
-                    Paths.get(imageDir.getPath(), "scoreboard.png"),
+                    Paths.get(imageDir.getPath(), "scoreboard_#" + game.getId() + ".png"),
                     StandardCopyOption.REPLACE_EXISTING);
 
             // Clean up

@@ -12,7 +12,7 @@ import java.util.Set;
 @Setter
 @NoArgsConstructor
 @Entity
-@Table(name = "PERSONA_CONNECTION")
+@Table(name = "PERSONA_CONNECTION", schema = "public")
 public class PersonaConnectionEntity {
 
     @Id

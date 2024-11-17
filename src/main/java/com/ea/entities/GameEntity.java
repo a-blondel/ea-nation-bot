@@ -12,7 +12,7 @@ import java.util.Set;
 @Setter
 @NoArgsConstructor
 @Entity
-@Table(name = "GAME")
+@Table(name = "GAME", schema = "public")
 public class GameEntity {
 
     @Id
