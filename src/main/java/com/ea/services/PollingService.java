@@ -47,14 +47,18 @@ public class PollingService {
         LocalDateTime lastFetchTime = LocalDateTime.parse(lastFetchTimeEntity.getParamValue(), DateTimeFormatter.ofPattern(DATETIME_FORMAT));
         LocalDateTime currentFetchTime = LocalDateTime.now();
 
-        List<GameEntity> mohhGames = gameRepository.findByVersInAndEndTimeBetween(vers, lastFetchTime, currentFetchTime);
-
-        for (GameEntity game : mohhGames) {
-            scoreboardService.generateScoreboard(game);
-        }
+        processScoreboard(lastFetchTime, currentFetchTime);
 
         lastFetchTimeEntity.setParamValue(currentFetchTime.format(DateTimeFormatter.ofPattern(DATETIME_FORMAT)));
         paramRepository.save(lastFetchTimeEntity);
+    }
+
+    private void processScoreboard(LocalDateTime lastFetchTime, LocalDateTime currentFetchTime) {
+        List<GameEntity> games = gameRepository.findByVersInAndEndTimeBetween(vers, lastFetchTime, currentFetchTime);
+
+        for (GameEntity game : games) {
+            scoreboardService.generateScoreboard(game);
+        }
     }
 
     //@PostConstruct // Enable this annotation when debugging

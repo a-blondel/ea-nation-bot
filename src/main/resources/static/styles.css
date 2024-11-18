@@ -73,6 +73,20 @@ h3 {
     margin: 0 auto 36px auto;
 }
 
+.game-name-with-icons {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.game-name-with-icons .icon {
+    margin-left: 10px;
+}
+
+.game-name-with-icons .icon img {
+    height: 20px;
+}
+
 .scoreboard {
     margin: 0 0 48px 0;
 }
