@@ -51,8 +51,10 @@ public class ScoreboardService {
             setImagesIntoContext(context);
 
             // Generate the HTML content
-            String htmlContent = templateEngine.process("scoreboard-dm", context);
-            if(!context.getVariable("gameModeId").equals("8")) {
+            String htmlContent;
+            if(context.getVariable("gameModeId").toString().equals("8")) {
+                htmlContent = templateEngine.process("scoreboard-dm", context);
+            } else {
                 htmlContent = templateEngine.process("scoreboard-team", context);
             }
 
@@ -123,6 +125,15 @@ public class ScoreboardService {
             return false;
         }
 
+        if(params[0].equals("8")) {
+            setDeathmatchInfoIntoContext(context, aggregatedReports);
+        } else {
+            setTeamInfoIntoContext(context, aggregatedReports);
+        }
+        return true;
+    }
+
+    private void setDeathmatchInfoIntoContext(Context context, Map<String, GameReportEntity> aggregatedReports) {
         List<GameReportEntity> sortedReports = aggregatedReports.values().stream()
                 .sorted((report1, report2) -> {
                     int score1 = report1.getKill() - report1.getDeath();
@@ -138,9 +149,53 @@ public class ScoreboardService {
                         .map(report -> report.getPersonaConnection().getPersona().getPers())
                         .orElse(null);
 
-        context.setVariable("reports", sortedReports);
+        context.setVariable("reports", sortedReports != null ? sortedReports : new ArrayList<>());
         context.setVariable("winner", winner + " Wins the Battle");
-        return true;
+    }
+
+    private void setTeamInfoIntoContext(Context context, Map<String, GameReportEntity> aggregatedReports) {
+        List<GameReportEntity> sortedAxisReports = aggregatedReports.values().stream()
+                .filter(report -> report.getAxis() > 0)
+                .sorted((report1, report2) -> {
+                    int score1 = report1.getKill() - report1.getDeath();
+                    int score2 = report2.getKill() - report2.getDeath();
+                    return Integer.compare(score2, score1);
+                })
+                .limit(16)
+                .toList();
+
+        List<GameReportEntity> sortedAlliesReports = aggregatedReports.values().stream()
+                .filter(report -> report.getAllies() > 0)
+                .sorted((report1, report2) -> {
+                    int score1 = report1.getKill() - report1.getDeath();
+                    int score2 = report2.getKill() - report2.getDeath();
+                    return Integer.compare(score2, score1);
+                })
+                .limit(16)
+                .toList();
+
+        int axisTotalKills = sortedAxisReports.stream().mapToInt(GameReportEntity::getKill).sum();
+        int axisTotalDeaths = sortedAxisReports.stream().mapToInt(GameReportEntity::getDeath).sum();
+        int alliesTotalKills = sortedAlliesReports.stream().mapToInt(GameReportEntity::getKill).sum();
+        int alliesTotalDeaths = sortedAlliesReports.stream().mapToInt(GameReportEntity::getDeath).sum();
+
+        String winner = sortedAxisReports.stream()
+                        .filter(report -> report.getWin() > 0)
+                        .findFirst()
+                        .map(report -> "Axis")
+                        .orElseGet(() -> sortedAlliesReports.stream()
+                                .filter(report -> report.getWin() > 0)
+                                .findFirst()
+                                .map(report -> "Allies")
+                                .orElse("Draw"));
+
+        context.setVariable("axisReports", sortedAxisReports != null ? sortedAxisReports : new ArrayList<>());
+        context.setVariable("alliesReports", sortedAlliesReports != null ? sortedAlliesReports : new ArrayList<>());
+        context.setVariable("axisTotalKills", axisTotalKills);
+        context.setVariable("axisTotalDeaths", axisTotalDeaths);
+        context.setVariable("alliesTotalKills", alliesTotalKills);
+        context.setVariable("alliesTotalDeaths", alliesTotalDeaths);
+        context.setVariable("winner", winner);
     }
 
     private GameReportEntity getAggregatedReport(GameReportEntity report, GameReportEntity existingReport) {

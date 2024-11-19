@@ -46,42 +46,22 @@
                         <th>Deaths</th>
                     </thead>
                     <tbody>
-                        <!-- player rows -->
-                        <tr>
-                            <td><strong>Player Name</strong></td>
-                            <td>10</td>
-                            <td>20</td>
-                            <td>10</td>
+                    <tr th:each="report, iterStat : ${alliesReports}">
+                        <td><strong th:text="${report.personaConnection.persona.pers}"></strong></td>
+                        <td th:text="${report.kill - report.death}"></td>
+                        <td th:text="${report.kill}"></td>
+                        <td th:text="${report.death}"></td>
                         </tr>
-                        <tr>
-                            <td><strong>Player Name</strong></td>
-                            <td>10</td>
-                            <td>20</td>
-                            <td>10</td>
+                    <tr th:if="${#lists.size(alliesReports) < 16}" th:each="i : ${#numbers.sequence(1, 16 - #lists.size(alliesReports))}">
+                        <td colspan="4"></td>
                         </tr>
-
-                        <!-- blank rows -->
-                        <tr><td colspan="4"></td></tr>
-                        <tr><td colspan="4"></td></tr>
-                        <tr><td colspan="4"></td></tr>
-                        <tr><td colspan="4"></td></tr>
-                        <tr><td colspan="4"></td></tr>
-                        <tr><td colspan="4"></td></tr>
-                        <tr><td colspan="4"></td></tr>
-                        <tr><td colspan="4"></td></tr>
-                        <tr><td colspan="4"></td></tr>
-                        <tr><td colspan="4"></td></tr>
-                        <tr><td colspan="4"></td></tr>
-                        <tr><td colspan="4"></td></tr>
-                        <tr><td colspan="4"></td></tr>
-                        <tr><td colspan="4"></td></tr>
                     </tbody>
                     <tfoot>
                         <tr>
                             <th>Total</th>
-                            <td>20</td>
-                            <td>40</td>
-                            <td>20</td>
+                            <td th:text="${alliesTotalKills - alliesTotalDeaths}"></td>
+                            <td th:text="${alliesTotalKills}"></td>
+                            <td th:text="${alliesTotalDeaths}"></td>
                         </tr>
                     </tfoot>
                 </table>
@@ -94,59 +74,39 @@
                         <th>Deaths</th>
                     </thead>
                     <tbody>
-                        <!-- player rows -->
-                        <tr>
-                            <td><strong>Player Name</strong></td>
-                            <td>10</td>
-                            <td>20</td>
-                            <td>10</td>
+                    <tr th:each="report, iterStat : ${axisReports}">
+                        <td><strong th:text="${report.personaConnection.persona.pers}"></strong></td>
+                        <td th:text="${report.kill - report.death}"></td>
+                        <td th:text="${report.kill}"></td>
+                        <td th:text="${report.death}"></td>
                         </tr>
-                        <tr>
-                            <td><strong>Player Name</strong></td>
-                            <td>10</td>
-                            <td>20</td>
-                            <td>10</td>
+                    <tr th:if="${#lists.size(axisReports) < 16}" th:each="i : ${#numbers.sequence(1, 16 - #lists.size(axisReports))}">
+                        <td colspan="4"></td>
                         </tr>
-
-                        <!-- blank rows -->
-                        <tr><td colspan="4"></td></tr>
-                        <tr><td colspan="4"></td></tr>
-                        <tr><td colspan="4"></td></tr>
-                        <tr><td colspan="4"></td></tr>
-                        <tr><td colspan="4"></td></tr>
-                        <tr><td colspan="4"></td></tr>
-                        <tr><td colspan="4"></td></tr>
-                        <tr><td colspan="4"></td></tr>
-                        <tr><td colspan="4"></td></tr>
-                        <tr><td colspan="4"></td></tr>
-                        <tr><td colspan="4"></td></tr>
-                        <tr><td colspan="4"></td></tr>
-                        <tr><td colspan="4"></td></tr>
-                        <tr><td colspan="4"></td></tr>
                     </tbody>
                     <tfoot>
                         <tr>
                             <th>Total</th>
-                            <td>20</td>
-                            <td>40</td>
-                            <td>20</td>
+                            <td th:text="${axisTotalKills - axisTotalDeaths}"></td>
+                            <td th:text="${axisTotalKills}"></td>
+                            <td th:text="${axisTotalDeaths}"></td>
                         </tr>
                     </tfoot>
                 </table>
             </div>
 
             <div class="game-result">
-                <div class="result draw">
+                <div th:if="${winner} == 'Draw'" class="result draw">
                     <p>Draw Battle</p>
                 </div>
 
-                <!-- <div class="result axis">
+                <div th:if="${winner} == 'Axis'" class="result axis">
                     <p>Axis Win</p>
                 </div>
 
-                <div class="result allies">
+                <div th:if="${winner} == 'Allies'" class="result allies">
                     <p>Allies Win</p>
-                </div> -->
+                </div>
             </div>
         </div>
     </body>
