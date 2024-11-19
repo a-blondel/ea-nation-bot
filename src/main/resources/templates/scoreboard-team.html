@@ -14,7 +14,7 @@
     </head>
 
     <!-- Set the class here to correspond to the background image -->
-    <body th:style="'background-image: url(' + ${backgroundImageDataUrl} + ');'">
+    <body th:style="'background-image: url(' + ${backgroundImg} + ');'">
         <div class="wrap">
             <div class="game-details">
                 <h1 th:text="${mapName}"></h1>
@@ -24,15 +24,15 @@
                     <h3 class="game" th:text="${gameName}"></h3>
 
                     <div th:if="${ranked} == '1'" class="icon">
-                        <img th:src="${rankedImageDataUrl}" alt="Ranked Logo"/>
+                        <img th:src="${rankedImg}" alt="Ranked Logo"/>
                     </div>
 
                     <div th:if="${friendlyFireMode == '1' or friendlyFireMode == '2'}" class="icon">
-                        <img th:src="${friendlyFireImageDataUrl}" alt="Friendly Fire Logo"/>
+                        <img th:src="${friendlyFireImg}" alt="Friendly Fire Logo"/>
                     </div>
 
                     <div th:if="${aimAssist} == '1'" class="icon">
-                        <img th:src="${aimAssistImageDataUrl}" alt="Aim Assist Logo"/>
+                        <img th:src="${aimAssistImg}" alt="Aim Assist Logo"/>
                     </div>
                 </div>
             </div>

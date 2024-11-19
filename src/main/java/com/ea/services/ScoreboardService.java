@@ -8,8 +8,10 @@ import java.nio.file.Paths;
 import java.nio.file.StandardCopyOption;
 import java.time.Duration;
 import java.time.format.DateTimeFormatter;
-import java.util.Base64;
+import java.util.*;
 
+import com.ea.entities.GameReportEntity;
+import org.jetbrains.annotations.NotNull;
 import org.openqa.selenium.OutputType;
 import org.openqa.selenium.TakesScreenshot;
 import org.openqa.selenium.WebDriver;
@@ -36,7 +38,11 @@ public class ScoreboardService {
         log.info("Generating scoreboard for game #{}", game.getId());
         try {
             Context context = new Context();
-            setGameInfoIntoContext(context, game);
+            boolean proceed = setGameInfoIntoContext(context, game);
+            if(!proceed) {
+                log.info("Skipping game #{}", game.getId());
+                return; // The report is not interesting (no kills or less than 2 players)
+            }
 
             // Read CSS content without modifications
             String cssContent = new String(Files.readAllBytes(Paths.get("src/main/resources/static/styles.css")), StandardCharsets.UTF_8);
@@ -88,7 +94,7 @@ public class ScoreboardService {
         }
     }
 
-    private void setGameInfoIntoContext(Context context, GameEntity game) {
+    private boolean setGameInfoIntoContext(Context context, GameEntity game) {
         String[] params = game.getParams().split(",");
         context.setVariable("gameName", game.getName());
         context.setVariable("gameModeId", params[0]);
@@ -98,40 +104,82 @@ public class ScoreboardService {
         context.setVariable("ranked", params[8]);
         context.setVariable("gameStartTime", game.getStartTime().format(DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm:ss")));
         context.setVariable("gameDuration", Duration.between(game.getStartTime(), game.getEndTime()).toMinutes());
+
+        Set<GameReportEntity> reports = game.getGameReports();
+        Map<String, GameReportEntity> aggregatedReports = new HashMap<>();
+
+        for (GameReportEntity report : reports) {
+            String personaConnectionId = report.getPersonaConnection().getPersona().getPers();
+            if (aggregatedReports.containsKey(personaConnectionId)) {
+                GameReportEntity existingReport = aggregatedReports.get(personaConnectionId);
+                GameReportEntity aggregatedReport = getAggregatedReport(report, existingReport);
+                aggregatedReports.put(personaConnectionId, aggregatedReport);
+            } else {
+                aggregatedReports.put(personaConnectionId, report);
+            }
+        }
+
+        if(aggregatedReports.size() < 2 || aggregatedReports.values().stream().noneMatch(report -> report.getKill() > 0)) {
+            return false;
+        }
+
+        List<GameReportEntity> sortedReports = aggregatedReports.values().stream()
+                .sorted((report1, report2) -> {
+                    int score1 = report1.getKill() - report1.getDeath();
+                    int score2 = report2.getKill() - report2.getDeath();
+                    return Integer.compare(score2, score1);
+                })
+                .limit(16)
+                .toList();
+
+        String winner = sortedReports.stream()
+                        .filter(report -> report.getWin() > 0)
+                        .findFirst()
+                        .map(report -> report.getPersonaConnection().getPersona().getPers())
+                        .orElse(null);
+
+        context.setVariable("reports", sortedReports);
+        context.setVariable("winner", winner + " Wins the Battle");
+        return true;
+    }
+
+    private GameReportEntity getAggregatedReport(GameReportEntity report, GameReportEntity existingReport) {
+        GameReportEntity aggregatedReport = new GameReportEntity();
+        aggregatedReport.setKill(existingReport.getKill() + report.getKill());
+        aggregatedReport.setDeath(existingReport.getDeath() + report.getDeath());
+        aggregatedReport.setHead(existingReport.getHead() + report.getHead());
+        aggregatedReport.setHit(existingReport.getHit() + report.getHit());
+        aggregatedReport.setShot(existingReport.getShot() + report.getShot());
+        aggregatedReport.setWin(existingReport.getWin() + report.getWin());
+        aggregatedReport.setLoss(existingReport.getLoss() + report.getLoss());
+        aggregatedReport.setAllies(existingReport.getAllies() + report.getAllies());
+        aggregatedReport.setAxis(existingReport.getAxis() + report.getAxis());
+        aggregatedReport.setPlayTime(existingReport.getPlayTime() + report.getPlayTime());
+        return aggregatedReport;
     }
 
     private void setImagesIntoContext(Context context) throws IOException {
-        byte[] imageBytes = Files.readAllBytes(Paths.get("src/main/resources/static/images/holland-bridge.png"));
-        String base64Image = Base64.getEncoder().encodeToString(imageBytes);
-        String backgroundImageDataUrl = "data:image/png;base64," + base64Image;
-        context.setVariable("backgroundImageDataUrl", backgroundImageDataUrl);
+        setImageIntoContext(context, "src/main/resources/static/images/holland-bridge.png", "backgroundImg");
 
         if(context.getVariable("ranked").toString().equals("1")) {
-            byte[] rankedImageBytes = Files.readAllBytes(Paths.get("src/main/resources/static/images/ranked.png"));
-            String base64RankedImage = Base64.getEncoder().encodeToString(rankedImageBytes);
-            String rankedImageDataUrl = "data:image/png;base64," + base64RankedImage;
-            context.setVariable("rankedImageDataUrl", rankedImageDataUrl);
+            setImageIntoContext(context, "src/main/resources/static/images/ranked.png", "rankedImg");
         }
 
         String friendlyFireMode = context.getVariable("friendlyFireMode").toString();
         if(friendlyFireMode.equals("1") || friendlyFireMode.equals("2")) {
-            byte[] friendlyFireImageBytes = null;
-            if (friendlyFireMode.equals("1")) {
-                friendlyFireImageBytes = Files.readAllBytes(Paths.get("src/main/resources/static/images/friendly-fire.png"));
-            } else if (friendlyFireMode.equals("2")) {
-                friendlyFireImageBytes = Files.readAllBytes(Paths.get("src/main/resources/static/images/reverse-friendly-fire.png"));
-            }
-            String base64FriendlyFireImage = Base64.getEncoder().encodeToString(friendlyFireImageBytes);
-            String friendlyFireImageDataUrl = "data:image/png;base64," + base64FriendlyFireImage;
-            context.setVariable("friendlyFireImageDataUrl", friendlyFireImageDataUrl);
+            String imagePath = friendlyFireMode.equals("1") ? "src/main/resources/static/images/friendly-fire.png" : "src/main/resources/static/images/reverse-friendly-fire.png";
+            setImageIntoContext(context, imagePath, "friendlyFireImg");
         }
 
         if(context.getVariable("aimAssist").toString().equals("1")) {
-            byte[] aimAssistImageBytes = Files.readAllBytes(Paths.get("src/main/resources/static/images/aim-assist.png"));
-            String base64AimAssistImage = Base64.getEncoder().encodeToString(aimAssistImageBytes);
-            String aimAssistImageDataUrl = "data:image/png;base64," + base64AimAssistImage;
-            context.setVariable("aimAssistImageDataUrl", aimAssistImageDataUrl);
+            setImageIntoContext(context, "src/main/resources/static/images/aim-assist.png", "aimAssistImg");
         }
     }
-
+    
+    private void setImageIntoContext(Context context, String imagePath, String variableName) throws IOException {
+        byte[] imageBytes = Files.readAllBytes(Paths.get(imagePath));
+        String base64Image = Base64.getEncoder().encodeToString(imageBytes);
+        String Img = "data:image/png;base64," + base64Image;
+        context.setVariable(variableName, Img);
+    }
 }

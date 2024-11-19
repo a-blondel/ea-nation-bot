@@ -11,7 +11,7 @@
         <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;0,600;0,700;1,300;1,400;1,500;1,600;1,700&amp;family=EB+Garamond:ital,wght@0,400..800;1,400..800&amp;display=swap" rel="stylesheet"/>
     </head>
 
-    <body th:style="'background-image: url(' + ${backgroundImageDataUrl} + ');'">
+    <body th:style="'background-image: url(' + ${backgroundImg} + ');'">
         <div class="wrap">
             <div class="game-details">
                 <h1 th:text="${mapName}"></h1>
@@ -21,15 +21,15 @@
                     <h3 class="game" th:text="${gameName}"></h3>
 
                     <div th:if="${ranked} == '1'" class="icon">
-                        <img th:src="${rankedImageDataUrl}" alt="Ranked Logo"/>
+                        <img th:src="${rankedImg}" alt="Ranked Logo"/>
                     </div>
 
                     <div th:if="${friendlyFireMode == '1' or friendlyFireMode == '2'}" class="icon">
-                        <img th:src="${friendlyFireImageDataUrl}" alt="Friendly Fire Logo"/>
+                        <img th:src="${friendlyFireImg}" alt="Friendly Fire Logo"/>
                     </div>
 
                     <div th:if="${aimAssist} == '1'" class="icon">
-                        <img th:src="${aimAssistImageDataUrl}" alt="Aim Assist Logo"/>
+                        <img th:src="${aimAssistImg}" alt="Aim Assist Logo"/>
                     </div>
                 </div>
             </div>
@@ -43,42 +43,22 @@
                         <th>Deaths</th>
                     </thead>
                     <tbody>
-                        <!-- player rows -->
-                        <tr>
-                            <td><strong>Player Name</strong></td>
-                            <td>10</td>
-                            <td>20</td>
-                            <td>10</td>
-                        </tr>
-                        <tr>
-                            <td><strong>Player Name</strong></td>
-                            <td>10</td>
-                            <td>20</td>
-                            <td>10</td>
-                        </tr>
-
-                        <!-- blank rows -->
-                        <tr><td colspan="4"></td></tr>
-                        <tr><td colspan="4"></td></tr>
-                        <tr><td colspan="4"></td></tr>
-                        <tr><td colspan="4"></td></tr>
-                        <tr><td colspan="4"></td></tr>
-                        <tr><td colspan="4"></td></tr>
-                        <tr><td colspan="4"></td></tr>
-                        <tr><td colspan="4"></td></tr>
-                        <tr><td colspan="4"></td></tr>
-                        <tr><td colspan="4"></td></tr>
-                        <tr><td colspan="4"></td></tr>
-                        <tr><td colspan="4"></td></tr>
-                        <tr><td colspan="4"></td></tr>
-                        <tr><td colspan="4"></td></tr>
+                    <tr th:each="report, iterStat : ${reports}">
+                        <td><strong th:text="${report.personaConnection.persona.pers}"></strong></td>
+                        <td th:text="${report.kill - report.death}"></td>
+                        <td th:text="${report.kill}"></td>
+                        <td th:text="${report.death}"></td>
+                    </tr>
+                    <tr th:if="${#lists.size(reports) < 16}" th:each="i : ${#numbers.sequence(1, 16 - #lists.size(reports))}">
+                        <td colspan="4"></td>
+                    </tr>
                     </tbody>
                 </table>
             </div>
 
             <div class="game-result">
                 <div class="result">
-                    <p>Labeo Wins the Battle</p>
+                    <p th:text="${winner}"></p>
                 </div>
             </div>
         </div>
