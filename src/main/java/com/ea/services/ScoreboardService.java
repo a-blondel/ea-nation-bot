@@ -11,7 +11,6 @@ import java.time.format.DateTimeFormatter;
 import java.util.*;
 
 import com.ea.entities.GameReportEntity;
-import org.jetbrains.annotations.NotNull;
 import org.openqa.selenium.OutputType;
 import org.openqa.selenium.TakesScreenshot;
 import org.openqa.selenium.WebDriver;
@@ -23,6 +22,9 @@ import org.thymeleaf.context.Context;
 
 import com.ea.entities.GameEntity;
 import com.ea.enums.MapMoHH;
+import java.util.Base64;
+import java.util.HashMap;
+import java.util.Map;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -46,6 +48,10 @@ public class ScoreboardService {
 
             // Read CSS content without modifications
             String cssContent = new String(Files.readAllBytes(Paths.get("src/main/resources/static/styles.css")), StandardCharsets.UTF_8);
+
+            // Encode fonts to Base64 and inject into CSS
+            cssContent = embedFontsInCss(cssContent);
+
             context.setVariable("styles", cssContent);
 
             setImagesIntoContext(context);
@@ -236,5 +242,27 @@ public class ScoreboardService {
         String base64Image = Base64.getEncoder().encodeToString(imageBytes);
         String Img = "data:image/png;base64," + base64Image;
         context.setVariable(variableName, Img);
+    }
+
+    private String embedFontsInCss(String cssContent) throws IOException {
+        // Map of font file names to their MIME types
+        Map<String, String> fontFiles = new HashMap<>();
+        fontFiles.put("CormorantGaramond-Regular.woff2", "font/woff2");
+        fontFiles.put("EBGaramond-Regular.woff2", "font/woff2");
+
+        for (Map.Entry<String, String> entry : fontFiles.entrySet()) {
+            String fontFileName = entry.getKey();
+            String mimeType = entry.getValue();
+
+            // Read the font file
+            byte[] fontBytes = Files.readAllBytes(Paths.get("src/main/resources/static/fonts/" + fontFileName));
+            String base64Font = Base64.getEncoder().encodeToString(fontBytes);
+            String dataUri = "data:" + mimeType + ";base64," + base64Font;
+
+            // Replace the font URL in CSS with the Data URI
+            cssContent = cssContent.replace("url('/fonts/" + fontFileName + "')", "url('" + dataUri + "')");
+        }
+
+        return cssContent;
     }
 }
