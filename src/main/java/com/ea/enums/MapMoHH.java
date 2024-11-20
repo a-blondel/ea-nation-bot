@@ -10,7 +10,7 @@ public enum MapMoHH {
 //    5 - Battlelines
 //    8 - Deathmatch
 
-    ITALY_CITY_DOM("MAP1", "115", "73", "1", "Italy City: Deathmatch"),
+    ITALY_CITY_DOM("MAP1", "115", "73", "1", "Italy City: Domination"),
     ITALY_MT_VILLAGE_INF("MAP2", "124", "7c", "2", "Mnt. Village Day: Infiltration"),
     ITALY_BEACH_DEM("MAP3", "131", "83", "3", "The Beachhead: Demolition"),
     ITALY_AIRFIELD_DEM("MAP4", "132", "84", "3", "The Airfield: Demolition"),

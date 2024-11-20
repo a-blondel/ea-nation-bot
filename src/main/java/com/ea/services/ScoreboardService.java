@@ -100,6 +100,7 @@ public class ScoreboardService {
         String[] params = game.getParams().split(",");
         context.setVariable("gameName", game.getName());
         context.setVariable("gameModeId", params[0]);
+        context.setVariable("mapHexId", params[1]);
         context.setVariable("mapName", MapMoHH.getMapNameByHexId(params[1]));
         context.setVariable("friendlyFireMode", params[2]);
         context.setVariable("aimAssist", params[3]);
@@ -214,7 +215,9 @@ public class ScoreboardService {
     }
 
     private void setImagesIntoContext(Context context) throws IOException {
-        setImageIntoContext(context, "src/main/resources/static/images/holland-bridge.png", "backgroundImg");
+        String mapHexId = context.getVariable("mapHexId").toString();
+        String imagePath = findImageByMapHexId(mapHexId);
+        setImageIntoContext(context, imagePath, "backgroundImg");
 
         if(context.getVariable("ranked").toString().equals("1")) {
             setImageIntoContext(context, "src/main/resources/static/images/ranked.png", "rankedImg");
@@ -222,12 +225,22 @@ public class ScoreboardService {
 
         String friendlyFireMode = context.getVariable("friendlyFireMode").toString();
         if(friendlyFireMode.equals("1") || friendlyFireMode.equals("2")) {
-            String imagePath = friendlyFireMode.equals("1") ? "src/main/resources/static/images/friendly-fire.png" : "src/main/resources/static/images/reverse-friendly-fire.png";
+            imagePath = friendlyFireMode.equals("1") ? "src/main/resources/static/images/friendly-fire.png" : "src/main/resources/static/images/reverse-friendly-fire.png";
             setImageIntoContext(context, imagePath, "friendlyFireImg");
         }
 
         if(context.getVariable("aimAssist").toString().equals("1")) {
             setImageIntoContext(context, "src/main/resources/static/images/aim-assist.png", "aimAssistImg");
+        }
+    }
+
+    private String findImageByMapHexId(String mapHexId) throws IOException {
+        File dir = new File("src/main/resources/static/images/maps");
+        File[] matchingFiles = dir.listFiles((dir1, name) -> name.startsWith(mapHexId) && name.endsWith(".jpg"));
+        if (matchingFiles != null && matchingFiles.length > 0) {
+            return matchingFiles[0].getPath();
+        } else {
+            throw new IOException("No image found for mapHexId: " + mapHexId);
         }
     }
     
