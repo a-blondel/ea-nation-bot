@@ -5,7 +5,6 @@ import com.ea.entities.discord.ParamEntity;
 import com.ea.enums.Params;
 import com.ea.repositories.GameRepository;
 import com.ea.repositories.discord.ParamRepository;
-import jakarta.annotation.PostConstruct;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
@@ -33,7 +32,7 @@ public class PollingService {
     private final GameRepository gameRepository;
     private final ScoreboardService scoreboardService;
 
-    @Scheduled(fixedRate = 20000)
+    @Scheduled(fixedDelay = 20000)
     public void processDataSinceLastFetchTime() throws UnknownHostException {
         ParamEntity lastFetchTimeEntity = paramRepository.findById(Params.LAST_FETCH_TIME.name()).orElseGet(() -> {
             ParamEntity paramEntity = new ParamEntity();
@@ -54,7 +53,7 @@ public class PollingService {
     }
 
     private void processScoreboard(LocalDateTime lastFetchTime, LocalDateTime currentFetchTime) {
-        List<GameEntity> games = gameRepository.findByVersInAndEndTimeBetween(vers, lastFetchTime, currentFetchTime);
+        List<GameEntity> games = gameRepository.findByVersInAndEndTimeBetweenOrderByEndTimeAsc(vers, lastFetchTime, currentFetchTime);
 
         for (GameEntity game : games) {
             scoreboardService.generateScoreboard(game);

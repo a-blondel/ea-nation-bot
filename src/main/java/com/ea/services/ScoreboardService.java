@@ -97,9 +97,10 @@ public class ScoreboardService {
     }
 
     private boolean setGameInfoIntoContext(Context context, GameEntity game) {
+        context.setVariable("gameName", game.getName().replaceAll("\"", ""));
         String[] params = game.getParams().split(",");
-        context.setVariable("gameName", game.getName());
-        context.setVariable("gameModeId", params[0]);
+        String gameModeId = params[0];
+        context.setVariable("gameModeId", gameModeId);
         context.setVariable("mapHexId", params[1]);
         context.setVariable("mapName", MapMoHH.getMapNameByHexId(params[1]));
         context.setVariable("friendlyFireMode", params[2]);
@@ -122,11 +123,13 @@ public class ScoreboardService {
             }
         }
 
-        if(aggregatedReports.size() < 2 || aggregatedReports.values().stream().noneMatch(report -> report.getKill() > 0)) {
+        if(aggregatedReports.size() < 2 || aggregatedReports.values().stream().noneMatch(report -> report.getKill() > 0)
+                || gameModeId.equals("8") && aggregatedReports.values().stream().noneMatch(report -> report.getDmRnd() > 0)
+                || !gameModeId.equals("8") && aggregatedReports.values().stream().noneMatch(report -> report.getAxis() > 0 || report.getAllies() > 0)) {
             return false;
         }
 
-        if(params[0].equals("8")) {
+        if(gameModeId.equals("8")) {
             setDeathmatchInfoIntoContext(context, aggregatedReports);
         } else {
             setTeamInfoIntoContext(context, aggregatedReports);
@@ -136,10 +139,16 @@ public class ScoreboardService {
 
     private void setDeathmatchInfoIntoContext(Context context, Map<String, GameReportEntity> aggregatedReports) {
         List<GameReportEntity> sortedReports = aggregatedReports.values().stream()
+                .filter(report -> !report.isHost() && report.getDmRnd() > 0)
                 .sorted((report1, report2) -> {
                     int score1 = report1.getKill() - report1.getDeath();
                     int score2 = report2.getKill() - report2.getDeath();
                     return Integer.compare(score2, score1);
+                })
+                .map(report -> {
+                    String persona = report.getPersonaConnection().getPersona().getPers().replaceAll("\"", "");
+                    report.getPersonaConnection().getPersona().setPers(persona);
+                    return report;
                 })
                 .limit(16)
                 .toList();
@@ -151,26 +160,36 @@ public class ScoreboardService {
                         .orElse(null);
 
         context.setVariable("reports", sortedReports != null ? sortedReports : new ArrayList<>());
-        context.setVariable("winner", winner + " Wins the Battle");
+        context.setVariable("winner", winner == null ? "Draw Battle" : winner + " Wins the Battle");
     }
 
     private void setTeamInfoIntoContext(Context context, Map<String, GameReportEntity> aggregatedReports) {
         List<GameReportEntity> sortedAxisReports = aggregatedReports.values().stream()
-                .filter(report -> report.getAxis() > 0)
+                .filter(report -> !report.isHost() && report.getAxis() > 0)
                 .sorted((report1, report2) -> {
                     int score1 = report1.getKill() - report1.getDeath();
                     int score2 = report2.getKill() - report2.getDeath();
                     return Integer.compare(score2, score1);
                 })
+                .map(report -> {
+                    String persona = report.getPersonaConnection().getPersona().getPers().replaceAll("\"", "");
+                    report.getPersonaConnection().getPersona().setPers(persona);
+                    return report;
+                })
                 .limit(16)
                 .toList();
 
         List<GameReportEntity> sortedAlliesReports = aggregatedReports.values().stream()
-                .filter(report -> report.getAllies() > 0)
+                .filter(report -> !report.isHost() && report.getAllies() > 0)
                 .sorted((report1, report2) -> {
                     int score1 = report1.getKill() - report1.getDeath();
                     int score2 = report2.getKill() - report2.getDeath();
                     return Integer.compare(score2, score1);
+                })
+                .map(report -> {
+                    String persona = report.getPersonaConnection().getPersona().getPers().replaceAll("\"", "");
+                    report.getPersonaConnection().getPersona().setPers(persona);
+                    return report;
                 })
                 .limit(16)
                 .toList();
@@ -211,6 +230,8 @@ public class ScoreboardService {
         aggregatedReport.setAllies(existingReport.getAllies() + report.getAllies());
         aggregatedReport.setAxis(existingReport.getAxis() + report.getAxis());
         aggregatedReport.setPlayTime(existingReport.getPlayTime() + report.getPlayTime());
+        aggregatedReport.setGame(existingReport.getGame());
+        aggregatedReport.setPersonaConnection(existingReport.getPersonaConnection());
         return aggregatedReport;
     }
 

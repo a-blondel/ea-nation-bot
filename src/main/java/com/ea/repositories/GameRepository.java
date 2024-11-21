@@ -10,6 +10,6 @@ import java.util.List;
 @Repository
 public interface GameRepository extends JpaRepository<GameEntity, Long> {
 
-    List<GameEntity> findByVersInAndEndTimeBetween(List<String> vers, LocalDateTime startTime, LocalDateTime endTime);
+    List<GameEntity> findByVersInAndEndTimeBetweenOrderByEndTimeAsc(List<String> vers, LocalDateTime startTime, LocalDateTime endTime);
 
 }
