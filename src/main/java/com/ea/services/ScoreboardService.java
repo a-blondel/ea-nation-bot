@@ -11,7 +11,6 @@ import java.time.format.DateTimeFormatter;
 import java.util.*;
 
 import com.ea.entities.GameReportEntity;
-import org.jetbrains.annotations.NotNull;
 import org.openqa.selenium.OutputType;
 import org.openqa.selenium.TakesScreenshot;
 import org.openqa.selenium.WebDriver;
@@ -44,13 +43,10 @@ public class ScoreboardService {
                 return; // The report is not interesting (no kills or less than 2 players)
             }
 
-            // Read CSS content without modifications
             String cssContent = new String(Files.readAllBytes(Paths.get("src/main/resources/static/styles.css")), StandardCharsets.UTF_8);
             context.setVariable("styles", cssContent);
-
             setImagesIntoContext(context);
 
-            // Generate the HTML content
             String htmlContent;
             if(context.getVariable("gameModeId").toString().equals("8")) {
                 htmlContent = templateEngine.process("scoreboard-dm", context);
@@ -58,11 +54,9 @@ public class ScoreboardService {
                 htmlContent = templateEngine.process("scoreboard-team", context);
             }
 
-            // Save HTML content to a temporary file
             File htmlFile = File.createTempFile("scoreboard", ".html");
             Files.write(htmlFile.toPath(), htmlContent.getBytes(StandardCharsets.UTF_8));
 
-            // Set up headless Chrome
             ChromeOptions options = new ChromeOptions();
             options.addArguments("--headless=new");
             options.addArguments(
@@ -71,14 +65,9 @@ public class ScoreboardService {
                 "--hide-scrollbars",
                 "--allow-file-access-from-files");
             WebDriver driver = new ChromeDriver(options);
-
-            // Load the HTML file
             driver.get(htmlFile.toURI().toString());
 
-            // Take a screenshot
             File screenshot = ((TakesScreenshot) driver).getScreenshotAs(OutputType.FILE);
-
-            // Save the screenshot
             File imageDir = new File("images");
             if (!imageDir.exists()) {
                 imageDir.mkdirs();
@@ -87,12 +76,11 @@ public class ScoreboardService {
                     Paths.get(imageDir.getPath(), "scoreboard_#" + game.getId() + ".png"),
                     StandardCopyOption.REPLACE_EXISTING);
 
-            // Clean up
             driver.quit();
             htmlFile.delete();
 
         } catch (Exception e) {
-            e.printStackTrace();
+            log.error("Error generating scoreboard for game #{}", game.getId(), e);
         }
     }
 
@@ -113,6 +101,9 @@ public class ScoreboardService {
         Map<String, GameReportEntity> aggregatedReports = new HashMap<>();
 
         for (GameReportEntity report : reports) {
+            if(report.getPersonaConnection().isHost()) {
+                continue;
+            }
             String personaConnectionId = report.getPersonaConnection().getPersona().getPers();
             if (aggregatedReports.containsKey(personaConnectionId)) {
                 GameReportEntity existingReport = aggregatedReports.get(personaConnectionId);
@@ -123,9 +114,7 @@ public class ScoreboardService {
             }
         }
 
-        if(aggregatedReports.size() < 2 || aggregatedReports.values().stream().noneMatch(report -> report.getKill() > 0)
-                || gameModeId.equals("8") && aggregatedReports.values().stream().noneMatch(report -> report.getDmRnd() > 0)
-                || !gameModeId.equals("8") && aggregatedReports.values().stream().noneMatch(report -> report.getAxis() > 0 || report.getAllies() > 0)) {
+        if(aggregatedReports.size() < 2 || aggregatedReports.values().stream().noneMatch(report -> report.getKill() > 0)) {
             return false;
         }
 
@@ -139,7 +128,7 @@ public class ScoreboardService {
 
     private void setDeathmatchInfoIntoContext(Context context, Map<String, GameReportEntity> aggregatedReports) {
         List<GameReportEntity> sortedReports = aggregatedReports.values().stream()
-                .filter(report -> !report.isHost() && report.getDmRnd() > 0)
+                .filter(report -> report.getKill() > 0 || report.getDeath() > 0)
                 .sorted((report1, report2) -> {
                     int score1 = report1.getKill() - report1.getDeath();
                     int score2 = report2.getKill() - report2.getDeath();
@@ -165,7 +154,8 @@ public class ScoreboardService {
 
     private void setTeamInfoIntoContext(Context context, Map<String, GameReportEntity> aggregatedReports) {
         List<GameReportEntity> sortedAxisReports = aggregatedReports.values().stream()
-                .filter(report -> !report.isHost() && report.getAxis() > 0)
+                .filter(report -> report.getKill() > 0 || report.getDeath() > 0)
+                .filter(report -> report.getAxis() > 0 || (report.getAllies() == 0 && isMostlyAxis(report)))
                 .sorted((report1, report2) -> {
                     int score1 = report1.getKill() - report1.getDeath();
                     int score2 = report2.getKill() - report2.getDeath();
@@ -180,7 +170,8 @@ public class ScoreboardService {
                 .toList();
 
         List<GameReportEntity> sortedAlliesReports = aggregatedReports.values().stream()
-                .filter(report -> !report.isHost() && report.getAllies() > 0)
+                .filter(report -> report.getKill() > 0 || report.getDeath() > 0)
+                .filter(report -> report.getAllies() > 0 || (report.getAxis() == 0 && !isMostlyAxis(report)))
                 .sorted((report1, report2) -> {
                     int score1 = report1.getKill() - report1.getDeath();
                     int score2 = report2.getKill() - report2.getDeath();
@@ -218,6 +209,14 @@ public class ScoreboardService {
         context.setVariable("winner", winner);
     }
 
+    private boolean isMostlyAxis(GameReportEntity report) {
+        int axisShots = report.getLugerShot() + report.getMp40Shot() + report.getMp44Shot() +
+                report.getKarShot() + report.getGewrShot() + report.getPanzShot();
+        int alliesShots = report.getColtShot() + report.getTomShot() + report.getBarShot() +
+                report.getGarShot() + report.getEnfieldShot() + report.getBazShot();
+        return axisShots > alliesShots;
+    }
+
     private GameReportEntity getAggregatedReport(GameReportEntity report, GameReportEntity existingReport) {
         GameReportEntity aggregatedReport = new GameReportEntity();
         aggregatedReport.setKill(existingReport.getKill() + report.getKill());
@@ -227,6 +226,7 @@ public class ScoreboardService {
         aggregatedReport.setShot(existingReport.getShot() + report.getShot());
         aggregatedReport.setWin(existingReport.getWin() + report.getWin());
         aggregatedReport.setLoss(existingReport.getLoss() + report.getLoss());
+        aggregatedReport.setDmRnd(existingReport.getDmRnd() + report.getDmRnd());
         aggregatedReport.setAllies(existingReport.getAllies() + report.getAllies());
         aggregatedReport.setAxis(existingReport.getAxis() + report.getAxis());
         aggregatedReport.setPlayTime(existingReport.getPlayTime() + report.getPlayTime());

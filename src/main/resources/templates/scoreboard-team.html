@@ -46,7 +46,7 @@
                         <th>Deaths</th>
                     </thead>
                     <tbody>
-                    <tr th:each="report, iterStat : ${alliesReports}">
+                    <tr th:each="report, iterStat : ${alliesReports}" th:classappend="${report.allies == 0} ? 'greyed-out' : ''">
                         <td><strong th:text="${report.personaConnection.persona.pers}"></strong></td>
                         <td th:text="${report.kill - report.death}"></td>
                         <td th:text="${report.kill}"></td>
@@ -74,7 +74,7 @@
                         <th>Deaths</th>
                     </thead>
                     <tbody>
-                    <tr th:each="report, iterStat : ${axisReports}">
+                    <tr th:each="report, iterStat : ${axisReports}" th:classappend="${report.axis == 0} ? 'greyed-out' : ''">
                         <td><strong th:text="${report.personaConnection.persona.pers}"></strong></td>
                         <td th:text="${report.kill - report.death}"></td>
                         <td th:text="${report.kill}"></td>

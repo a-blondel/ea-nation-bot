@@ -235,3 +235,7 @@ h3 {
     background: var(--allies);
     outline-color: var(--allies);
 }
+
+.greyed-out {
+    color: grey;
+}

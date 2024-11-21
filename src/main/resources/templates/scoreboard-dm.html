@@ -43,7 +43,7 @@
                         <th>Deaths</th>
                     </thead>
                     <tbody>
-                    <tr th:each="report, iterStat : ${reports}">
+                    <tr th:each="report, iterStat : ${reports}" th:classappend="${report.dmRnd == 0} ? 'greyed-out' : ''">
                         <td><strong th:text="${report.personaConnection.persona.pers}"></strong></td>
                         <td th:text="${report.kill - report.death}"></td>
                         <td th:text="${report.kill}"></td>
