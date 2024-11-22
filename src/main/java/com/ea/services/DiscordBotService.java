@@ -3,6 +3,7 @@ package com.ea.services;
 import jakarta.annotation.PostConstruct;
 import net.dv8tion.jda.api.JDA;
 import net.dv8tion.jda.api.JDABuilder;
+import net.dv8tion.jda.api.entities.Activity;
 import net.dv8tion.jda.api.entities.channel.concrete.TextChannel;
 import net.dv8tion.jda.api.utils.FileUpload;
 import org.springframework.beans.factory.annotation.Value;
@@ -23,7 +24,7 @@ public class DiscordBotService {
     private final ScheduledExecutorService scheduler = Executors.newScheduledThreadPool(1);
 
     @PostConstruct
-    public void init() throws Exception {
+    public void init() {
         jda = JDABuilder.createDefault(token).build();
     }
 
@@ -45,6 +46,12 @@ public class DiscordBotService {
                 }
             };
             scheduler.schedule(sendTask, 1, TimeUnit.SECONDS);
+        }
+    }
+
+    public void updateActivity(String activity) {
+        if (jda != null) {
+            jda.getPresence().setActivity(Activity.customStatus(activity));
         }
     }
 }

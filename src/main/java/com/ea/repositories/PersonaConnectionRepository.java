@@ -7,4 +7,6 @@ import org.springframework.stereotype.Repository;
 @Repository
 public interface PersonaConnectionRepository extends JpaRepository<PersonaConnectionEntity, Long> {
 
+    int countByIsHostIsFalseAndEndTimeIsNull();
+
 }

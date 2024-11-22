@@ -4,7 +4,9 @@ import com.ea.entities.GameEntity;
 import com.ea.entities.discord.ParamEntity;
 import com.ea.enums.Params;
 import com.ea.repositories.GameRepository;
+import com.ea.repositories.PersonaConnectionRepository;
 import com.ea.repositories.discord.ParamRepository;
+import jakarta.annotation.PostConstruct;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
@@ -33,8 +35,19 @@ public class PollingService {
 
     private final ParamRepository paramRepository;
     private final GameRepository gameRepository;
+    private final PersonaConnectionRepository personaConnectionRepository;
     private final ScoreboardService scoreboardService;
     private final DiscordBotService discordBotService;
+
+    @PostConstruct
+    @Scheduled(fixedDelay = 60000)
+    public void updateBotActivity() throws UnknownHostException {
+        ParamEntity lastKnownIpEntity = paramRepository.findById(Params.LAST_KNOWN_IP.name()).orElse(null);
+        String currentIp = lastKnownIpEntity != null ? lastKnownIpEntity.getParamValue() : "UNKNOWN";
+        int currentPlayersOnline = personaConnectionRepository.countByIsHostIsFalseAndEndTimeIsNull();
+        String activity = currentPlayersOnline + " online | DNS IP: " + currentIp;
+        discordBotService.updateActivity(activity);
+    }
 
     @Scheduled(fixedDelay = 20000)
     public void processDataSinceLastFetchTime() throws UnknownHostException {
@@ -67,20 +80,16 @@ public class PollingService {
     //@PostConstruct // Enable this annotation when debugging
     @Scheduled(cron = "0 0 0,12 * * ?")
     public void processIpChange() throws UnknownHostException {
-        ParamEntity lastKnownIpEntity = paramRepository.findById(Params.LAST_KNOWN_IP.name()).orElseGet(() -> {
-            ParamEntity paramEntity = new ParamEntity();
-            paramEntity.setParamKey(Params.LAST_KNOWN_IP.name());
-            paramEntity.setParamValue("127.0.0.1");
-            return paramEntity;
-        });
-
-        String lastKnownIp = lastKnownIpEntity.getParamValue();
-        String currentIp = InetAddress.getByName(dnsName).getHostAddress();
-        if(!lastKnownIp.equals(currentIp)) {
-            log.info("NEW DNS ADDRESS: {}", currentIp);
-            lastKnownIpEntity.setParamValue(currentIp);
-            paramRepository.save(lastKnownIpEntity);
-            discordBotService.sendMessage(discordChannelId, "New DNS address: " + currentIp);
+        ParamEntity lastKnownIpEntity = paramRepository.findById(Params.LAST_KNOWN_IP.name()).orElse(null);
+        if (lastKnownIpEntity != null) {
+            String lastKnownIp = lastKnownIpEntity.getParamValue();
+            String currentIp = InetAddress.getByName(dnsName).getHostAddress();
+            if(!lastKnownIp.equals(currentIp)) {
+                log.info("NEW DNS ADDRESS: {}", currentIp);
+                lastKnownIpEntity.setParamValue(currentIp);
+                paramRepository.save(lastKnownIpEntity);
+                discordBotService.sendMessage(discordChannelId, "New DNS address: " + currentIp);
+            }
         }
     }
 
