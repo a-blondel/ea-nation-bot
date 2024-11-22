@@ -25,12 +25,16 @@ public class PollingService {
     @Value("${dns.name}")
     private String dnsName;
 
+    @Value("${discord.channel-id}")
+    private String discordChannelId;
+
     public static final String DATETIME_FORMAT = "yyyy-MM-dd HH:mm:ss.SSSSSS";
     private final List<String> vers = List.of("PSP/MOHGPS071", "PSP/MOH07");
 
     private final ParamRepository paramRepository;
     private final GameRepository gameRepository;
     private final ScoreboardService scoreboardService;
+    private final DiscordBotService discordBotService;
 
     @Scheduled(fixedDelay = 20000)
     public void processDataSinceLastFetchTime() throws UnknownHostException {
@@ -76,6 +80,7 @@ public class PollingService {
             log.info("NEW DNS ADDRESS: {}", currentIp);
             lastKnownIpEntity.setParamValue(currentIp);
             paramRepository.save(lastKnownIpEntity);
+            discordBotService.sendMessage(discordChannelId, "New DNS address: " + currentIp);
         }
     }
 

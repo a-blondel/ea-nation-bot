@@ -2,7 +2,6 @@ package com.ea.services;
 
 import java.io.File;
 import java.io.IOException;
-import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.nio.file.StandardCopyOption;
@@ -16,6 +15,7 @@ import org.openqa.selenium.TakesScreenshot;
 import org.openqa.selenium.WebDriver;
 import org.openqa.selenium.chrome.ChromeDriver;
 import org.openqa.selenium.chrome.ChromeOptions;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.thymeleaf.TemplateEngine;
 import org.thymeleaf.context.Context;
@@ -32,6 +32,10 @@ import lombok.extern.slf4j.Slf4j;
 public class ScoreboardService {
 
     private final TemplateEngine templateEngine;
+    private final DiscordBotService discordBotService;
+
+    @Value("${discord.channel-id}")
+    private String discordChannelId;
 
     public void generateScoreboard(GameEntity game) {
         log.info("Generating scoreboard for game #{}", game.getId());
@@ -43,7 +47,7 @@ public class ScoreboardService {
                 return; // The report is not interesting (no kills or less than 2 players)
             }
 
-            String cssContent = new String(Files.readAllBytes(Paths.get("src/main/resources/static/styles.css")), StandardCharsets.UTF_8);
+            String cssContent = Files.readString(Paths.get("src/main/resources/static/styles.css"));
             context.setVariable("styles", cssContent);
             setImagesIntoContext(context);
 
@@ -55,7 +59,7 @@ public class ScoreboardService {
             }
 
             File htmlFile = File.createTempFile("scoreboard", ".html");
-            Files.write(htmlFile.toPath(), htmlContent.getBytes(StandardCharsets.UTF_8));
+            Files.writeString(htmlFile.toPath(), htmlContent);
 
             ChromeOptions options = new ChromeOptions();
             options.addArguments("--headless=new");
@@ -72,12 +76,13 @@ public class ScoreboardService {
             if (!imageDir.exists()) {
                 imageDir.mkdirs();
             }
-            Files.copy(screenshot.toPath(),
-                    Paths.get(imageDir.getPath(), "scoreboard_#" + game.getId() + ".png"),
-                    StandardCopyOption.REPLACE_EXISTING);
+            File imageFile = new File(imageDir, "scoreboard_#" + game.getId() + ".png");
+            Files.copy(screenshot.toPath(), imageFile.toPath(), StandardCopyOption.REPLACE_EXISTING);
 
             driver.quit();
             htmlFile.delete();
+
+            discordBotService.sendImage(discordChannelId, imageFile, null);
 
         } catch (Exception e) {
             log.error("Error generating scoreboard for game #{}", game.getId(), e);
@@ -134,10 +139,9 @@ public class ScoreboardService {
                     int score2 = report2.getKill() - report2.getDeath();
                     return Integer.compare(score2, score1);
                 })
-                .map(report -> {
+                .peek(report -> {
                     String persona = report.getPersonaConnection().getPersona().getPers().replaceAll("\"", "");
                     report.getPersonaConnection().getPersona().setPers(persona);
-                    return report;
                 })
                 .limit(16)
                 .toList();
@@ -148,7 +152,7 @@ public class ScoreboardService {
                         .map(report -> report.getPersonaConnection().getPersona().getPers())
                         .orElse(null);
 
-        context.setVariable("reports", sortedReports != null ? sortedReports : new ArrayList<>());
+        context.setVariable("reports", sortedReports);
         context.setVariable("winner", winner == null ? "Draw Battle" : winner + " Wins the Battle");
     }
 
@@ -161,10 +165,9 @@ public class ScoreboardService {
                     int score2 = report2.getKill() - report2.getDeath();
                     return Integer.compare(score2, score1);
                 })
-                .map(report -> {
+                .peek(report -> {
                     String persona = report.getPersonaConnection().getPersona().getPers().replaceAll("\"", "");
                     report.getPersonaConnection().getPersona().setPers(persona);
-                    return report;
                 })
                 .limit(16)
                 .toList();
@@ -177,10 +180,9 @@ public class ScoreboardService {
                     int score2 = report2.getKill() - report2.getDeath();
                     return Integer.compare(score2, score1);
                 })
-                .map(report -> {
+                .peek(report -> {
                     String persona = report.getPersonaConnection().getPersona().getPers().replaceAll("\"", "");
                     report.getPersonaConnection().getPersona().setPers(persona);
-                    return report;
                 })
                 .limit(16)
                 .toList();
@@ -200,8 +202,8 @@ public class ScoreboardService {
                                 .map(report -> "Allies")
                                 .orElse("Draw"));
 
-        context.setVariable("axisReports", sortedAxisReports != null ? sortedAxisReports : new ArrayList<>());
-        context.setVariable("alliesReports", sortedAlliesReports != null ? sortedAlliesReports : new ArrayList<>());
+        context.setVariable("axisReports", sortedAxisReports);
+        context.setVariable("alliesReports", sortedAlliesReports);
         context.setVariable("axisTotalKills", axisTotalKills);
         context.setVariable("axisTotalDeaths", axisTotalDeaths);
         context.setVariable("alliesTotalKills", alliesTotalKills);

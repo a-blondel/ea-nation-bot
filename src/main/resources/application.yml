@@ -9,7 +9,9 @@ spring:
     change-log: classpath:db/changelog/db.changelog-master.yaml
     default-schema: discord
 
-discord.token: ${DISCORD_TOKEN}
+discord:
+  token: ${DISCORD_TOKEN}
+  channel-id: ${DISCORD_CHANNEL_ID}
 
 dns.name: ${DNS_NAME}
 
