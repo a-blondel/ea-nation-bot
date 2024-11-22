@@ -240,6 +240,8 @@ public class ScoreboardService {
         String imagePath = findImageByMapHexId(mapHexId);
         setImageIntoContext(context, imagePath, "backgroundImg");
 
+        setImageIntoContext(context, "src/main/resources/static/images/logout.png", "logoutImg");
+
         if(context.getVariable("ranked").toString().equals("1")) {
             setImageIntoContext(context, "src/main/resources/static/images/ranked.png", "rankedImg");
         }

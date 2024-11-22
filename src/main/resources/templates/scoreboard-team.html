@@ -3,17 +3,12 @@
     <head>
         <title>MOH: Heroes - Team Scoreboard</title>
         <style th:utext="${styles}"></style>
-        
-        <!-- included the CSS like this, if this doesn't work just remove and your old method should work -->
-        <link rel="stylesheet" href="../static/styles.css"/>
 
-        <!-- if these fonts don't work just let me know and we can change them -->
         <link rel="preconnect" href="https://fonts.googleapis.com"/>
         <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin=""/>
         <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;0,600;0,700;1,300;1,400;1,500;1,600;1,700&amp;family=EB+Garamond:ital,wght@0,400..800;1,400..800&amp;display=swap" rel="stylesheet"/>
     </head>
 
-    <!-- Set the class here to correspond to the background image -->
     <body th:style="'background-image: url(' + ${backgroundImg} + ');'">
         <div class="wrap">
             <div class="game-details">
@@ -46,12 +41,17 @@
                         <th>Deaths</th>
                     </thead>
                     <tbody>
-                    <tr th:each="report, iterStat : ${alliesReports}" th:classappend="${report.allies == 0} ? 'greyed-out' : ''">
-                        <td><strong th:text="${report.personaConnection.persona.pers}"></strong></td>
+                    <tr th:each="report, iterStat : ${alliesReports}">
+                        <td class="persona-name-with-icon">
+                            <strong th:text="${report.personaConnection.persona.pers}"></strong>
+                            <div th:if="${report.allies == 0}" class="icon">
+                                <img th:src="${logoutImg}" alt="Logout Icon"/>
+                            </div>
+                        </td>
                         <td th:text="${report.kill - report.death}"></td>
                         <td th:text="${report.kill}"></td>
                         <td th:text="${report.death}"></td>
-                        </tr>
+                    </tr>
                     <tr th:if="${#lists.size(alliesReports) < 16}" th:each="i : ${#numbers.sequence(1, 16 - #lists.size(alliesReports))}">
                         <td colspan="4"></td>
                         </tr>
@@ -74,12 +74,17 @@
                         <th>Deaths</th>
                     </thead>
                     <tbody>
-                    <tr th:each="report, iterStat : ${axisReports}" th:classappend="${report.axis == 0} ? 'greyed-out' : ''">
-                        <td><strong th:text="${report.personaConnection.persona.pers}"></strong></td>
+                    <tr th:each="report, iterStat : ${axisReports}">
+                        <td class="persona-name-with-icon">
+                            <strong th:text="${report.personaConnection.persona.pers}"></strong>
+                            <div th:if="${report.axis == 0}" class="icon">
+                                <img th:src="${logoutImg}" alt="Logout Icon"/>
+                            </div>
+                        </td>
                         <td th:text="${report.kill - report.death}"></td>
                         <td th:text="${report.kill}"></td>
                         <td th:text="${report.death}"></td>
-                        </tr>
+                    </tr>
                     <tr th:if="${#lists.size(axisReports) < 16}" th:each="i : ${#numbers.sequence(1, 16 - #lists.size(axisReports))}">
                         <td colspan="4"></td>
                         </tr>

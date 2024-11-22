@@ -74,16 +74,21 @@ h3 {
 }
 
 .game-name-with-icons {
-    display: flex;
-    align-items: center;
     justify-content: center;
 }
 
-.game-name-with-icons .icon {
-    margin-left: 10px;
+.game-name-with-icons, .persona-name-with-icon {
+    display: flex;
+    align-items: center;
 }
 
-.game-name-with-icons .icon img {
+.game-name-with-icons .icon, .persona-name-with-icon .icon {
+    margin-left: 10px;
+    display: flex;
+    align-items: center;
+}
+
+.game-name-with-icons .icon img, .persona-name-with-icon .icon img {
     height: 20px;
 }
 
@@ -234,8 +239,4 @@ h3 {
 .game-result .result.allies p {
     background: var(--allies);
     outline-color: var(--allies);
-}
-
-.greyed-out {
-    color: grey;
 }

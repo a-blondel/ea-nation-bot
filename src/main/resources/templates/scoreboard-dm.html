@@ -3,8 +3,6 @@
     <head>
         <title>MOH: Heroes - Deathmatch Scoreboard</title>
         <style th:utext="${styles}"></style>
-        
-        <link rel="stylesheet" href="../static/styles.css"/>
 
         <link rel="preconnect" href="https://fonts.googleapis.com"/>
         <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin=""/>
@@ -43,8 +41,13 @@
                         <th>Deaths</th>
                     </thead>
                     <tbody>
-                    <tr th:each="report, iterStat : ${reports}" th:classappend="${report.dmRnd == 0} ? 'greyed-out' : ''">
-                        <td><strong th:text="${report.personaConnection.persona.pers}"></strong></td>
+                    <tr th:each="report, iterStat : ${reports}">
+                        <td class="persona-name-with-icon">
+                            <strong th:text="${report.personaConnection.persona.pers}"></strong>
+                            <div th:if="${report.dmRnd == 0}" class="icon">
+                                <img th:src="${logoutImg}" alt="Logout Icon"/>
+                            </div>
+                        </td>
                         <td th:text="${report.kill - report.death}"></td>
                         <td th:text="${report.kill}"></td>
                         <td th:text="${report.death}"></td>
