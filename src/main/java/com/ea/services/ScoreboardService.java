@@ -2,8 +2,8 @@ package com.ea.services;
 
 import java.io.File;
 import java.io.IOException;
+import java.io.InputStream;
 import java.nio.file.Files;
-import java.nio.file.Paths;
 import java.nio.file.StandardCopyOption;
 import java.time.Duration;
 import java.time.format.DateTimeFormatter;
@@ -16,6 +16,10 @@ import org.openqa.selenium.WebDriver;
 import org.openqa.selenium.chrome.ChromeDriver;
 import org.openqa.selenium.chrome.ChromeOptions;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.core.io.ClassPathResource;
+import org.springframework.core.io.Resource;
+import org.springframework.core.io.support.PathMatchingResourcePatternResolver;
+import org.springframework.core.io.support.ResourcePatternResolver;
 import org.springframework.stereotype.Service;
 import org.thymeleaf.TemplateEngine;
 import org.thymeleaf.context.Context;
@@ -34,6 +38,9 @@ public class ScoreboardService {
     @Value("${discord.channel-id}")
     private String discordChannelId;
 
+    @Value("${reports.path}")
+    private String reportsPath;
+
     private final TemplateEngine templateEngine;
     private final DiscordBotService discordBotService;
 
@@ -47,8 +54,14 @@ public class ScoreboardService {
                 return; // The report is not interesting (no kills or less than 2 players)
             }
 
-            String cssContent = Files.readString(Paths.get("src/main/resources/static/styles.css"));
-            context.setVariable("styles", cssContent);
+            try (InputStream cssStream = getClass().getResourceAsStream("/static/styles.css")) {
+                if (cssStream == null) {
+                    throw new IOException("Could not find resource styles.css");
+                }
+                String cssContent = new String(cssStream.readAllBytes());
+                context.setVariable("styles", cssContent);
+            }
+
             setImagesIntoContext(context);
 
             String htmlContent;
@@ -62,8 +75,10 @@ public class ScoreboardService {
             Files.writeString(htmlFile.toPath(), htmlContent);
 
             ChromeOptions options = new ChromeOptions();
-            options.addArguments("--headless=new");
-            options.addArguments(
+            options.addArguments("--headless=new",
+                "--disable-extensions",
+                "--no-sandbox",
+                "--disable-dev-shm-usage",
                 "--disable-gpu",
                 "--window-size=1920,1080",
                 "--hide-scrollbars",
@@ -72,7 +87,7 @@ public class ScoreboardService {
             driver.get(htmlFile.toURI().toString());
 
             File screenshot = ((TakesScreenshot) driver).getScreenshotAs(OutputType.FILE);
-            File imageDir = new File("images");
+            File imageDir = new File(reportsPath);
             if (!imageDir.exists()) {
                 imageDir.mkdirs();
             }
@@ -239,40 +254,44 @@ public class ScoreboardService {
 
     private void setImagesIntoContext(Context context) throws IOException {
         String mapHexId = context.getVariable("mapHexId").toString();
-        String imagePath = findImageByMapHexId(mapHexId);
-        setImageIntoContext(context, imagePath, "backgroundImg");
+        Resource mapImageResource = findImageByMapHexId(mapHexId);
+        setImageIntoContext(context, mapImageResource, "backgroundImg");
 
-        setImageIntoContext(context, "src/main/resources/static/images/logout.png", "logoutImg");
+        setImageIntoContext(context, new ClassPathResource("/static/images/logout.png"), "logoutImg");
 
         if(context.getVariable("ranked").toString().equals("1")) {
-            setImageIntoContext(context, "src/main/resources/static/images/ranked.png", "rankedImg");
+            setImageIntoContext(context, new ClassPathResource("/static/images/ranked.png"), "rankedImg");
         }
 
         String friendlyFireMode = context.getVariable("friendlyFireMode").toString();
         if(friendlyFireMode.equals("1") || friendlyFireMode.equals("2")) {
-            imagePath = friendlyFireMode.equals("1") ? "src/main/resources/static/images/friendly-fire.png" : "src/main/resources/static/images/reverse-friendly-fire.png";
-            setImageIntoContext(context, imagePath, "friendlyFireImg");
+            Resource friendlyFireResource = friendlyFireMode.equals("1")
+                    ? new ClassPathResource("/static/images/friendly-fire.png")
+                    : new ClassPathResource("/static/images/reverse-friendly-fire.png");
+            setImageIntoContext(context, friendlyFireResource, "friendlyFireImg");
         }
 
         if(context.getVariable("aimAssist").toString().equals("1")) {
-            setImageIntoContext(context, "src/main/resources/static/images/aim-assist.png", "aimAssistImg");
+            setImageIntoContext(context, new ClassPathResource("/static/images/aim-assist.png"), "aimAssistImg");
         }
     }
 
-    private String findImageByMapHexId(String mapHexId) throws IOException {
-        File dir = new File("src/main/resources/static/images/maps");
-        File[] matchingFiles = dir.listFiles((dir1, name) -> name.startsWith(mapHexId) && name.endsWith(".jpg"));
-        if (matchingFiles != null && matchingFiles.length > 0) {
-            return matchingFiles[0].getPath();
-        } else {
-            throw new IOException("No image found for mapHexId: " + mapHexId);
-        }
+    private Resource findImageByMapHexId(String mapHexId) throws IOException {
+    ResourcePatternResolver resolver = new PathMatchingResourcePatternResolver();
+    Resource[] resources = resolver.getResources("classpath:/static/images/maps/" + mapHexId + "*.jpg");
+    if (resources.length > 0) {
+        return resources[0];
+    } else {
+        throw new IOException("No image found for mapHexId: " + mapHexId);
     }
+}
     
-    private void setImageIntoContext(Context context, String imagePath, String variableName) throws IOException {
-        byte[] imageBytes = Files.readAllBytes(Paths.get(imagePath));
-        String base64Image = Base64.getEncoder().encodeToString(imageBytes);
-        String Img = "data:image/png;base64," + base64Image;
-        context.setVariable(variableName, Img);
+    private void setImageIntoContext(Context context, Resource resource, String variableName) throws IOException {
+        try (InputStream imageStream = resource.getInputStream()) {
+            byte[] imageBytes = imageStream.readAllBytes();
+            String base64Image = Base64.getEncoder().encodeToString(imageBytes);
+            String Img = "data:image/png;base64," + base64Image;
+            context.setVariable(variableName, Img);
+        }
     }
 }

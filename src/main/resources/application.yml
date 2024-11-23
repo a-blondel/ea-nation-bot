@@ -15,6 +15,8 @@ discord:
 
 dns.name: ${DNS_NAME}
 
+reports.path: ${REPORTS_PATH:reports}
+
 ---
 
 spring:
