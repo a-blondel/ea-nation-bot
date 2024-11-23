@@ -30,8 +30,9 @@ public class DiscordBotService {
 
     public void sendMessage(String channelId, String message) {
         TextChannel channel = jda.getTextChannelById(channelId);
-        if (channel != null) {
-            channel.sendMessage(message).queue();
+        if (channel != null && message != null && !message.isEmpty()) {
+            Runnable sendTask = () -> channel.sendMessage(message).queue();
+            scheduler.schedule(sendTask, 1, TimeUnit.SECONDS);
         }
     }
 

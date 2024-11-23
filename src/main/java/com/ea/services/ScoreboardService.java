@@ -31,11 +31,11 @@ import lombok.extern.slf4j.Slf4j;
 @RequiredArgsConstructor
 public class ScoreboardService {
 
-    private final TemplateEngine templateEngine;
-    private final DiscordBotService discordBotService;
-
     @Value("${discord.channel-id}")
     private String discordChannelId;
+
+    private final TemplateEngine templateEngine;
+    private final DiscordBotService discordBotService;
 
     public void generateScoreboard(GameEntity game) {
         log.info("Generating scoreboard for game #{}", game.getId());

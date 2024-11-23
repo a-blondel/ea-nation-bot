@@ -1,8 +1,12 @@
 package com.ea.services;
 
+import com.ea.Event;
 import com.ea.entities.GameEntity;
+import com.ea.entities.GameReportEntity;
+import com.ea.entities.PersonaConnectionEntity;
 import com.ea.entities.discord.ParamEntity;
 import com.ea.enums.Params;
+import com.ea.repositories.GameReportRepository;
 import com.ea.repositories.GameRepository;
 import com.ea.repositories.PersonaConnectionRepository;
 import com.ea.repositories.discord.ParamRepository;
@@ -17,12 +21,16 @@ import java.net.InetAddress;
 import java.net.UnknownHostException;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
+import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 
 @Slf4j
 @RequiredArgsConstructor
 @Service
 public class PollingService {
+    public static final String DATETIME_FORMAT = "yyyy-MM-dd HH:mm:ss.SSSSSS";
+    private static final List<String> vers = List.of("PSP/MOHGPS071", "PSP/MOH07");
 
     @Value("${dns.name}")
     private String dnsName;
@@ -30,43 +38,43 @@ public class PollingService {
     @Value("${discord.channel-id}")
     private String discordChannelId;
 
-    public static final String DATETIME_FORMAT = "yyyy-MM-dd HH:mm:ss.SSSSSS";
-    private final List<String> vers = List.of("PSP/MOHGPS071", "PSP/MOH07");
+    private boolean enablePlayerEventsProcess = false;
 
     private final ParamRepository paramRepository;
     private final GameRepository gameRepository;
+    private final GameReportRepository gameReportRepository;
     private final PersonaConnectionRepository personaConnectionRepository;
     private final ScoreboardService scoreboardService;
     private final DiscordBotService discordBotService;
 
     @PostConstruct
-    @Scheduled(fixedDelay = 60000)
+    @Scheduled(fixedDelay = 30000)
     public void updateBotActivity() throws UnknownHostException {
         ParamEntity lastKnownIpEntity = paramRepository.findById(Params.LAST_KNOWN_IP.name()).orElse(null);
         String currentIp = lastKnownIpEntity != null ? lastKnownIpEntity.getParamValue() : "UNKNOWN";
         int currentPlayersOnline = personaConnectionRepository.countByIsHostIsFalseAndEndTimeIsNull();
-        String activity = currentPlayersOnline + " online | DNS IP: " + currentIp;
+        int currentPlayersInGame = gameReportRepository.countByIsHostIsFalseAndEndTimeIsNull();
+        String activity = "🌐 " + currentPlayersOnline + " 🎮 " + currentPlayersInGame + " 💻 " + currentIp;
         discordBotService.updateActivity(activity);
     }
 
     @Scheduled(fixedDelay = 20000)
     public void processDataSinceLastFetchTime() throws UnknownHostException {
-        ParamEntity lastFetchTimeEntity = paramRepository.findById(Params.LAST_FETCH_TIME.name()).orElseGet(() -> {
-            ParamEntity paramEntity = new ParamEntity();
-            paramEntity.setParamKey(Params.LAST_FETCH_TIME.name());
-            paramEntity.setParamValue(LocalDateTime.now().minusMinutes(5).toString());
-            return paramEntity;
-        });
+        ParamEntity lastFetchTimeEntity = paramRepository.findById(Params.LAST_FETCH_TIME.name()).orElse(null);
+        if(lastFetchTimeEntity != null) {
+            LocalDateTime lastFetchTime = LocalDateTime.parse(lastFetchTimeEntity.getParamValue(), DateTimeFormatter.ofPattern(DATETIME_FORMAT));
+            LocalDateTime currentFetchTime = LocalDateTime.now();
 
-        log.info("Last fetch time: {}", lastFetchTimeEntity.getParamValue());
+            processScoreboard(lastFetchTime, currentFetchTime);
+            if(enablePlayerEventsProcess) {
+                processPlayerEvents(lastFetchTime, currentFetchTime);
+            } else {
+                enablePlayerEventsProcess = true;
+            }
 
-        LocalDateTime lastFetchTime = LocalDateTime.parse(lastFetchTimeEntity.getParamValue(), DateTimeFormatter.ofPattern(DATETIME_FORMAT));
-        LocalDateTime currentFetchTime = LocalDateTime.now();
-
-        processScoreboard(lastFetchTime, currentFetchTime);
-
-        lastFetchTimeEntity.setParamValue(currentFetchTime.format(DateTimeFormatter.ofPattern(DATETIME_FORMAT)));
-        paramRepository.save(lastFetchTimeEntity);
+            lastFetchTimeEntity.setParamValue(currentFetchTime.format(DateTimeFormatter.ofPattern(DATETIME_FORMAT)));
+            paramRepository.save(lastFetchTimeEntity);
+        }
     }
 
     private void processScoreboard(LocalDateTime lastFetchTime, LocalDateTime currentFetchTime) {
@@ -77,7 +85,40 @@ public class PollingService {
         }
     }
 
-    //@PostConstruct // Enable this annotation when debugging
+    private void processPlayerEvents(LocalDateTime lastFetchTime, LocalDateTime currentFetchTime) {
+        List<PersonaConnectionEntity> personaLogins = personaConnectionRepository.findByIsHostIsFalseAndStartTimeBetweenOrderByStartTime(lastFetchTime, currentFetchTime);
+        List<PersonaConnectionEntity> personaLogouts = personaConnectionRepository.findByIsHostIsFalseAndEndTimeBetweenOrderByEndTime(lastFetchTime, currentFetchTime);
+
+        List<GameReportEntity> gameJoining = gameReportRepository.findByIsHostIsFalseAndStartTimeBetweenOrderByStartTime(lastFetchTime, currentFetchTime);
+        List<GameReportEntity> gameLeaving = gameReportRepository.findByIsHostIsFalseAndEndTimeBetweenOrderByEndTime(lastFetchTime, currentFetchTime);
+
+        List<Event> events = new ArrayList<>();
+
+        for (PersonaConnectionEntity login : personaLogins) {
+            events.add(new Event(login.getId(), login.getStartTime(),
+                    login.getPersona().getPers().replaceAll("\"", "") + " connected"));
+        }
+        for (PersonaConnectionEntity logout : personaLogouts) {
+            events.add(new Event(logout.getId(), logout.getEndTime(),
+                    logout.getPersona().getPers().replaceAll("\"", "") + " disconnected"));
+        }
+        for (GameReportEntity join : gameJoining) {
+            events.add(new Event(join.getId(), join.getStartTime(),
+                    join.getPersonaConnection().getPersona().getPers().replaceAll("\"", "") +
+                            " joined game " + join.getGame().getName().replaceAll("\"", "")));
+        }
+        for (GameReportEntity leave : gameLeaving) {
+            events.add(new Event(leave.getId(), leave.getEndTime(),
+                    leave.getPersonaConnection().getPersona().getPers().replaceAll("\"", "") +
+                            " left game " + leave.getGame().getName().replaceAll("\"", "")));
+        }
+
+        Collections.sort(events); // use comparator of Event class
+
+        String message = String.join("\n", events.stream().map(Event::getMessage).toList());
+        discordBotService.sendMessage(discordChannelId, message);
+    }
+
     @Scheduled(cron = "0 0 0,12 * * ?")
     public void processIpChange() throws UnknownHostException {
         ParamEntity lastKnownIpEntity = paramRepository.findById(Params.LAST_KNOWN_IP.name()).orElse(null);
