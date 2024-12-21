@@ -18,6 +18,10 @@
                 <div class="game-name-with-icons">
                     <h3 class="game" th:text="${gameName}"></h3>
 
+                    <div th:if="${hasPassword} == true" class="icon">
+                        <img th:src="${passwordImg}" alt="Password Logo"/>
+                    </div>
+
                     <div th:if="${ranked} == '1'" class="icon">
                         <img th:src="${rankedImg}" alt="Ranked Logo"/>
                     </div>

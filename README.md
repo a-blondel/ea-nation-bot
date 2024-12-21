@@ -6,7 +6,7 @@
   - Current in game player count
   - Current DNS IP Address
 - Scoreboards
-  - Sends an image of the scoreboard everytime a game ends (if the game had at least 2 players and 1 kill/death) 
+  - Sends an image of the scoreboard every time a game ends (if the game had at least 2 players and 1 kill/death) 
 - Events
   - Sends a message when players connects/disconnects and joins/leaves games
 

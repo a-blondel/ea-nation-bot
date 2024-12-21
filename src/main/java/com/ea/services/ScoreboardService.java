@@ -114,6 +114,7 @@ public class ScoreboardService {
         context.setVariable("friendlyFireMode", params[2]);
         context.setVariable("aimAssist", params[3]);
         context.setVariable("ranked", params[8]);
+        context.setVariable("hasPassword",  game.getPass() != null);
         context.setVariable("gameStartTime", game.getStartTime().format(DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm:ss")));
         context.setVariable("gameDuration", Duration.between(game.getStartTime(), game.getEndTime()).toMinutes());
 
@@ -258,6 +259,10 @@ public class ScoreboardService {
         setImageIntoContext(context, mapImageResource, "backgroundImg");
 
         setImageIntoContext(context, new ClassPathResource("/static/images/logout.png"), "logoutImg");
+
+        if(context.getVariable("hasPassword").toString().equals("true")) {
+            setImageIntoContext(context, new ClassPathResource("/static/images/password.png"), "passwordImg");
+        }
 
         if(context.getVariable("ranked").toString().equals("1")) {
             setImageIntoContext(context, new ClassPathResource("/static/images/ranked.png"), "rankedImg");
