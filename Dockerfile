@@ -1,11 +1,11 @@
 # Build stage
-FROM maven:3.8.4-openjdk-17-slim AS build
+FROM maven:3.9-ibm-semeru-21-jammy AS build
 WORKDIR /usr/local/app
 COPY . .
 RUN mvn clean package -DskipTests
 
 # Run stage
-FROM ibm-semeru-runtimes:open-17-jre
+FROM ibm-semeru-runtimes:open-21-jre-jammy
 
 # See https://googlechromelabs.github.io/chrome-for-testing/
 ENV CHROMEDRIVER_VERSION=131.0.6778.85
