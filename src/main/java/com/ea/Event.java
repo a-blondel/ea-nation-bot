@@ -18,6 +18,10 @@ public class Event implements Comparable<Event> {
         if (timeComparison != 0) {
             return timeComparison;
         }
+        int disconnectedComparison = Boolean.compare(this.message.contains("disconnected"), other.message.contains("disconnected"));
+        if (disconnectedComparison != 0) {
+            return disconnectedComparison;
+        }
         return Long.compare(this.id, other.id);
     }
 }
