@@ -8,13 +8,18 @@
 - Scoreboards
   - Sends an image of the scoreboard every time a game ends (if the game had at least 2 players and 1 kill/death) 
 - Events
-  - Sends a message when players connects/disconnects and joins/leaves games
+  - Sends a message when players connect/disconnect and join/leave games
+- Weekly stats
+  - Sends an image of player connections using a heatmap
 
 <img src="doc/bot-activity.png" alt="bot activity" /><br/>
 *Discord bot activity*
 
 <img src="doc/scoreboard.png" alt="scoreboard" /><br/>
 *Scoreboard*
+
+<img src="doc/heatmap.png" alt="heatmap" /><br/>
+*Heatmap*
 
 ## Run
 

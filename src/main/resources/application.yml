@@ -8,6 +8,9 @@ spring:
   liquibase:
     change-log: classpath:db/changelog/db.changelog-master.yaml
     default-schema: discord
+logging:
+  level:
+    root: info
 
 discord:
   token: ${DISCORD_TOKEN}
@@ -16,6 +19,37 @@ discord:
 dns.name: ${DNS_NAME}
 
 reports.path: ${REPORTS_PATH:reports}
+
+services:
+  bot-activity-enabled: ${ENABLE_BOT_ACTIVITY:false}    # Controls bot activity updates and Discord message/image sending
+  events-enabled: ${ENABLE_EVENTS:false}    # Controls event processing from game server
+  map-enabled: ${ENABLE_MAP:false}    # Controls GeoIP, WorldMapGenerator and map functionality
+
+geoip:
+  license-key: ${MAXMIND_LICENSE_KEY}
+  data-dir: data/geoip
+
+map:
+  types: ${MAP_TYPES:HEATMAP} # Possible values: ALL, HEATMAP, LOCATION
+  show-names: ${MAP_NAMES:false}
+  colors:
+    background-rgb: 32,33,36
+    border-rgb: 70,70,70
+    no-data-rgb: 50,50,50
+    gradient:
+      min-red: 255
+      min-green: 216
+      min-blue: 216
+      max-red: 128
+      max-green: 0
+      max-blue: 0
+    dots:
+      color-rgb: 0,128,255
+      border-color-rgb: 0,128,255
+      opacity: 180
+      border-opacity: 200
+      size: 6
+
 
 ---
 
