@@ -16,4 +16,6 @@ public interface PersonaConnectionRepository extends JpaRepository<PersonaConnec
 
     List<PersonaConnectionEntity> findByIsHostIsFalseAndEndTimeBetweenOrderByEndTime(LocalDateTime start, LocalDateTime end);
 
+    List<PersonaConnectionEntity> findByStartTimeGreaterThan(LocalDateTime start);
+
 }

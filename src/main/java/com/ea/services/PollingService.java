@@ -1,6 +1,6 @@
 package com.ea.services;
 
-import com.ea.Event;
+import com.ea.model.Event;
 import com.ea.entities.GameEntity;
 import com.ea.entities.GameReportEntity;
 import com.ea.entities.PersonaConnectionEntity;
@@ -40,6 +40,12 @@ public class PollingService {
 
     private boolean enablePlayerEventsProcess = false;
 
+    @Value("${services.events-enabled}")
+    private boolean eventsEnabled;
+
+    @Value("${services.bot-activity-enabled}")
+    private boolean botActivityEnabled;
+
     private final ParamRepository paramRepository;
     private final GameRepository gameRepository;
     private final GameReportRepository gameReportRepository;
@@ -49,7 +55,11 @@ public class PollingService {
 
     @PostConstruct
     @Scheduled(fixedDelay = 30000)
-    public void updateBotActivity() throws UnknownHostException {
+    public void updateBotActivity() {
+        if (!botActivityEnabled) {
+            log.debug("Bot activity updates are disabled");
+            return;
+        }
         ParamEntity lastKnownIpEntity = paramRepository.findById(Params.LAST_KNOWN_IP.name()).orElse(null);
         String currentIp = lastKnownIpEntity != null ? lastKnownIpEntity.getParamValue() : "UNKNOWN";
         int currentPlayersOnline = personaConnectionRepository.countByIsHostIsFalseAndEndTimeIsNull();
@@ -59,7 +69,11 @@ public class PollingService {
     }
 
     @Scheduled(fixedDelay = 20000)
-    public void processDataSinceLastFetchTime() throws UnknownHostException {
+    public void processDataSinceLastFetchTime() {
+        if (!eventsEnabled) {
+            log.debug("Events service is disabled");
+            return;
+        }
         ParamEntity lastFetchTimeEntity = paramRepository.findById(Params.LAST_FETCH_TIME.name()).orElse(null);
         if(lastFetchTimeEntity != null) {
             LocalDateTime lastFetchTime = LocalDateTime.parse(lastFetchTimeEntity.getParamValue(), DateTimeFormatter.ofPattern(DATETIME_FORMAT));
@@ -121,6 +135,10 @@ public class PollingService {
 
     @Scheduled(cron = "0 0 0,12 * * ?")
     public void processIpChange() throws UnknownHostException {
+        if (!botActivityEnabled) {
+            log.debug("Bot activity is disabled, skipping IP change verification");
+            return;
+        }
         ParamEntity lastKnownIpEntity = paramRepository.findById(Params.LAST_KNOWN_IP.name()).orElse(null);
         if (lastKnownIpEntity != null) {
             String lastKnownIp = lastKnownIpEntity.getParamValue();

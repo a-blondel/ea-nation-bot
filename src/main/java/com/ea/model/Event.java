@@ -1,4 +1,4 @@
-package com.ea;
+package com.ea.model;
 
 import lombok.AllArgsConstructor;
 import lombok.Getter;
