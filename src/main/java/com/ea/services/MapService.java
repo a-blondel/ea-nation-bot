@@ -50,9 +50,11 @@ public class MapService {
             List<PersonaConnectionEntity> connections = personaConnectionRepository
                 .findByStartTimeGreaterThan(startTime);
 
-            // Group by persona and get the latest connection for each
+            // Group by persona and get the latest connection for each (hosts are excluded)
             Map<Long, PersonaConnectionEntity> latestConnections = connections.stream()
-                .filter(conn -> conn.getPersona() != null && conn.getPersona().getDeletedOn() == null)
+                .filter(conn -> conn.getPersona() != null
+                        && conn.getPersona().getDeletedOn() == null
+                        && conn.isHost() == false)
                 .collect(Collectors.groupingBy(
                     conn -> conn.getPersona().getId(),
                     Collectors.collectingAndThen(
@@ -61,14 +63,13 @@ public class MapService {
                     )
                 ));
 
-            // Handle duplicate IPs by keeping the persona with oldest creation date
+            // Handle duplicate IPs by keeping the last connected persona
             Map<String, PersonaConnectionEntity> uniqueIpConnections = latestConnections.values().stream()
-                .filter(conn -> cleanIpAddress(conn.getAddress()) != null)
                 .collect(Collectors.groupingBy(
                     conn -> cleanIpAddress(conn.getAddress()),
                     Collectors.collectingAndThen(
-                        Collectors.minBy(Comparator.comparing(conn -> 
-                            conn.getPersona().getCreatedOn())),
+                        Collectors.maxBy(Comparator.comparing(conn ->
+                            conn.getStartTime())),
                         Optional::get
                     )
                 ));

@@ -152,7 +152,7 @@ public class WorldMapGenerator {
         log.info("Generating heat map based on {} countries", countryHits.size());
         
         Resource shapefileResource = resourceLoader.getResource("classpath:world-map/ne_110m_admin_0_countries.shp");
-        FileDataStore dataStore = FileDataStoreFinder.getDataStore(shapefileResource.getFile());
+        FileDataStore dataStore = FileDataStoreFinder.getDataStore(shapefileResource.getURL());
         SimpleFeatureSource featureSource = dataStore.getFeatureSource();
 
         try {
@@ -192,7 +192,7 @@ public class WorldMapGenerator {
             map.dispose();
             log.info("Heat map generated successfully at: {}", outputFile.getAbsolutePath());
 
-            discordBotService.sendImage(discordChannelId, outputFile, "Weekly heatmap");
+            discordBotService.sendImage(discordChannelId, outputFile, "Weekly activity map");
         } finally {
             dataStore.dispose();
         }
@@ -328,7 +328,7 @@ public class WorldMapGenerator {
         log.info("Generating location map based on {} personas", locationInfoMap.size());
         
         Resource shapefileResource = resourceLoader.getResource("classpath:world-map/ne_110m_admin_0_countries.shp");
-        FileDataStore dataStore = FileDataStoreFinder.getDataStore(shapefileResource.getFile());
+        FileDataStore dataStore = FileDataStoreFinder.getDataStore(shapefileResource.getURL());
         SimpleFeatureSource featureSource = dataStore.getFeatureSource();
 
         try {
@@ -380,7 +380,7 @@ public class WorldMapGenerator {
             map.dispose();
             log.info("Location map generated successfully at: {}", outputFile.getAbsolutePath());
 
-            discordBotService.sendImage(discordChannelId, outputFile, "Weekly location map");
+            discordBotService.sendImage(discordChannelId, outputFile, "Weekly density map");
         } finally {
             dataStore.dispose();
         }

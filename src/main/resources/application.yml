@@ -23,7 +23,7 @@ reports.path: ${REPORTS_PATH:reports}
 services:
   bot-activity-enabled: ${ENABLE_BOT_ACTIVITY:false}    # Controls bot activity updates and Discord message/image sending
   events-enabled: ${ENABLE_EVENTS:false}    # Controls event processing from game server
-  map-enabled: ${ENABLE_MAP:false}    # Controls GeoIP, WorldMapGenerator and map functionality
+  map-enabled: ${ENABLE_MAP:false}    # Controls GeoIP, WorldMapGenerator and Map services
 
 geoip:
   license-key: ${MAXMIND_LICENSE_KEY}
