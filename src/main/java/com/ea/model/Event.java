@@ -18,10 +18,22 @@ public class Event implements Comparable<Event> {
         if (timeComparison != 0) {
             return timeComparison;
         }
-        int disconnectedComparison = Boolean.compare(this.message.contains("disconnected"), other.message.contains("disconnected"));
-        if (disconnectedComparison != 0) {
-            return disconnectedComparison;
+
+        int thisMessagePriority = getMessagePriority(this.message);
+        int otherMessagePriority = getMessagePriority(other.message);
+
+        if (thisMessagePriority != otherMessagePriority) {
+            return Integer.compare(thisMessagePriority, otherMessagePriority);
         }
+
         return Long.compare(this.id, other.id);
+    }
+
+    private int getMessagePriority(String message) {
+        if (message.contains(" connected")) return 1;
+        if (message.contains(" joined game ")) return 2;
+        if (message.contains(" left game ")) return 3;
+        if (message.contains(" disconnected")) return 4;
+        return 5;
     }
 }

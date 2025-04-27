@@ -21,6 +21,7 @@ import java.net.InetAddress;
 import java.net.UnknownHostException;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
+import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -77,7 +78,7 @@ public class PollingService {
         ParamEntity lastFetchTimeEntity = paramRepository.findById(Params.LAST_FETCH_TIME.name()).orElse(null);
         if(lastFetchTimeEntity != null) {
             LocalDateTime lastFetchTime = LocalDateTime.parse(lastFetchTimeEntity.getParamValue(), DateTimeFormatter.ofPattern(DATETIME_FORMAT));
-            LocalDateTime currentFetchTime = LocalDateTime.now();
+            LocalDateTime currentFetchTime = LocalDateTime.now().minusSeconds(1).truncatedTo(ChronoUnit.SECONDS);
 
             processScoreboard(lastFetchTime, currentFetchTime);
             if(enablePlayerEventsProcess) {
@@ -86,7 +87,7 @@ public class PollingService {
                 enablePlayerEventsProcess = true;
             }
 
-            lastFetchTimeEntity.setParamValue(currentFetchTime.format(DateTimeFormatter.ofPattern(DATETIME_FORMAT)));
+            lastFetchTimeEntity.setParamValue(currentFetchTime.plusSeconds(1).format(DateTimeFormatter.ofPattern(DATETIME_FORMAT)));
             paramRepository.save(lastFetchTimeEntity);
         }
     }
