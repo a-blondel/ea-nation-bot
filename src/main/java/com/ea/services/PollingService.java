@@ -69,7 +69,7 @@ public class PollingService {
         discordBotService.updateActivity(activity);
     }
 
-    @Scheduled(fixedDelay = 20000)
+    @Scheduled(cron = "0,15,30,45 * * * * *")
     public void processDataSinceLastFetchTime() {
         if (!eventsEnabled) {
             log.debug("Events service is disabled");
