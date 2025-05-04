@@ -69,7 +69,7 @@ public class PollingService {
         discordBotService.updateActivity(activity);
     }
 
-    @Scheduled(cron = "0,15,30,45 * * * * *")
+    @Scheduled(fixedDelay = 20000)
     public void processDataSinceLastFetchTime() {
         if (!eventsEnabled) {
             log.debug("Events service is disabled");
@@ -78,7 +78,7 @@ public class PollingService {
         ParamEntity lastFetchTimeEntity = paramRepository.findById(Params.LAST_FETCH_TIME.name()).orElse(null);
         if(lastFetchTimeEntity != null) {
             LocalDateTime lastFetchTime = LocalDateTime.parse(lastFetchTimeEntity.getParamValue(), DateTimeFormatter.ofPattern(DATETIME_FORMAT));
-            LocalDateTime currentFetchTime = LocalDateTime.now().minusSeconds(1).truncatedTo(ChronoUnit.SECONDS);
+            LocalDateTime currentFetchTime = LocalDateTime.now();
 
             processScoreboard(lastFetchTime, currentFetchTime);
             if(enablePlayerEventsProcess) {
@@ -87,7 +87,7 @@ public class PollingService {
                 enablePlayerEventsProcess = true;
             }
 
-            lastFetchTimeEntity.setParamValue(currentFetchTime.plusSeconds(1).format(DateTimeFormatter.ofPattern(DATETIME_FORMAT)));
+            lastFetchTimeEntity.setParamValue(currentFetchTime.format(DateTimeFormatter.ofPattern(DATETIME_FORMAT)));
             paramRepository.save(lastFetchTimeEntity);
         }
     }

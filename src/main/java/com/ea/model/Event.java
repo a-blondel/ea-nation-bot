@@ -31,8 +31,8 @@ public class Event implements Comparable<Event> {
 
     private int getMessagePriority(String message) {
         if (message.contains(" connected")) return 1;
-        if (message.contains(" joined game ")) return 2;
-        if (message.contains(" left game ")) return 3;
+        if (message.contains(" left game ")) return 2;
+        if (message.contains(" joined game ")) return 3;
         if (message.contains(" disconnected")) return 4;
         return 5;
     }
