@@ -30,6 +30,10 @@ import java.io.IOException;
 import java.util.*;
 import java.util.List;
 
+import com.ea.entities.discord.ChannelSubscriptionEntity;
+import com.ea.enums.SubscriptionType;
+import java.util.stream.Collectors;
+
 @Service
 @Slf4j
 @RequiredArgsConstructor
@@ -47,6 +51,7 @@ public class WorldMapGenerator {
     
     private final ResourceLoader resourceLoader;
     private final DiscordBotService discordBotService;
+    private final ChannelSubscriptionService channelSubscriptionService;
 
     @Value("${services.map-enabled}")
     private boolean serviceEnabled;
@@ -192,7 +197,9 @@ public class WorldMapGenerator {
             map.dispose();
             log.info("Heat map generated successfully at: {}", outputFile.getAbsolutePath());
 
-            discordBotService.sendImage(discordChannelId, outputFile, "Weekly activity map");
+            List<ChannelSubscriptionEntity> mapSubs = channelSubscriptionService.getAllByType(SubscriptionType.ACTIVITY_MAP);
+            List<String> channelIds = mapSubs.stream().map(ChannelSubscriptionEntity::getChannelId).collect(Collectors.toList());
+            discordBotService.sendImage(channelIds, outputFile, "Weekly activity map");
         } finally {
             dataStore.dispose();
         }
@@ -380,7 +387,9 @@ public class WorldMapGenerator {
             map.dispose();
             log.info("Location map generated successfully at: {}", outputFile.getAbsolutePath());
 
-            discordBotService.sendImage(discordChannelId, outputFile, "Weekly density map");
+            List<ChannelSubscriptionEntity> mapSubs = channelSubscriptionService.getAllByType(SubscriptionType.ACTIVITY_MAP);
+            List<String> channelIds = mapSubs.stream().map(ChannelSubscriptionEntity::getChannelId).collect(Collectors.toList());
+            discordBotService.sendImage(channelIds, outputFile, "Weekly density map");
         } finally {
             dataStore.dispose();
         }

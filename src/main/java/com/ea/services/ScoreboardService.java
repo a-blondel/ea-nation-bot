@@ -10,6 +10,7 @@ import java.time.format.DateTimeFormatter;
 import java.util.*;
 
 import com.ea.entities.GameReportEntity;
+import com.ea.entities.discord.ChannelSubscriptionEntity;
 import org.openqa.selenium.OutputType;
 import org.openqa.selenium.TakesScreenshot;
 import org.openqa.selenium.WebDriver;
@@ -26,9 +27,12 @@ import org.thymeleaf.context.Context;
 
 import com.ea.entities.GameEntity;
 import com.ea.enums.MapMoHH;
+import com.ea.enums.SubscriptionType;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import java.util.List;
+import java.util.stream.Collectors;
 
 @Slf4j
 @Service
@@ -43,6 +47,7 @@ public class ScoreboardService {
 
     private final TemplateEngine templateEngine;
     private final DiscordBotService discordBotService;
+    private final ChannelSubscriptionService channelSubscriptionService;
 
     public void generateScoreboard(GameEntity game) {
         log.info("Generating scoreboard for game #{}", game.getId());
@@ -97,7 +102,9 @@ public class ScoreboardService {
             driver.quit();
             htmlFile.delete();
 
-            discordBotService.sendImage(discordChannelId, imageFile, null);
+            List<ChannelSubscriptionEntity> scoreboardSubs = channelSubscriptionService.getAllByType(SubscriptionType.SCOREBOARD);
+            List<String> channelIds = scoreboardSubs.stream().map(ChannelSubscriptionEntity::getChannelId).collect(Collectors.toList());
+            discordBotService.sendImage(channelIds, imageFile, null);
 
         } catch (Exception e) {
             log.error("Error generating scoreboard for game #{}", game.getId(), e);

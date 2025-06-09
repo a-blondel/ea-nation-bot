@@ -6,10 +6,12 @@ import com.ea.entities.GameReportEntity;
 import com.ea.entities.PersonaConnectionEntity;
 import com.ea.entities.discord.ParamEntity;
 import com.ea.enums.Params;
+import com.ea.enums.SubscriptionType;
 import com.ea.repositories.GameReportRepository;
 import com.ea.repositories.GameRepository;
 import com.ea.repositories.PersonaConnectionRepository;
 import com.ea.repositories.discord.ParamRepository;
+import com.ea.entities.discord.ChannelSubscriptionEntity;
 import jakarta.annotation.PostConstruct;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -21,10 +23,10 @@ import java.net.InetAddress;
 import java.net.UnknownHostException;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
-import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.stream.Collectors;
 
 @Slf4j
 @RequiredArgsConstructor
@@ -35,9 +37,6 @@ public class PollingService {
 
     @Value("${dns.name}")
     private String dnsName;
-
-    @Value("${discord.channel-id}")
-    private String discordChannelId;
 
     private boolean enablePlayerEventsProcess = false;
 
@@ -53,9 +52,10 @@ public class PollingService {
     private final PersonaConnectionRepository personaConnectionRepository;
     private final ScoreboardService scoreboardService;
     private final DiscordBotService discordBotService;
+    private final ChannelSubscriptionService channelSubscriptionService;
 
     @PostConstruct
-    @Scheduled(fixedDelay = 30000)
+    @Scheduled(fixedDelay = 20000)
     public void updateBotActivity() {
         if (!botActivityEnabled) {
             log.debug("Bot activity updates are disabled");
@@ -131,7 +131,10 @@ public class PollingService {
         Collections.sort(events); // use comparator of Event class
 
         String message = String.join("\n", events.stream().map(Event::getMessage).toList());
-        discordBotService.sendMessage(discordChannelId, message);
+
+        List<ChannelSubscriptionEntity> eventSubs = channelSubscriptionService.getAllByType(SubscriptionType.EVENTS);
+        List<String> channelIds = eventSubs.stream().map(ChannelSubscriptionEntity::getChannelId).collect(Collectors.toList());
+        discordBotService.sendMessage(channelIds, message);
     }
 
     @Scheduled(cron = "0 0 0,12 * * ?")
@@ -148,7 +151,10 @@ public class PollingService {
                 log.info("NEW DNS ADDRESS: {}", currentIp);
                 lastKnownIpEntity.setParamValue(currentIp);
                 paramRepository.save(lastKnownIpEntity);
-                discordBotService.sendMessage(discordChannelId, "New DNS address: " + currentIp);
+
+                List<ChannelSubscriptionEntity> ipSubs = channelSubscriptionService.getAllByType(SubscriptionType.IP_UPDATE);
+                List<String> channelIds = ipSubs.stream().map(ChannelSubscriptionEntity::getChannelId).collect(Collectors.toList());
+                discordBotService.sendMessage(channelIds, "New DNS address: " + currentIp);
             }
         }
     }

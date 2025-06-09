@@ -14,7 +14,6 @@ logging:
 
 discord:
   token: ${DISCORD_TOKEN}
-  channel-id: ${DISCORD_CHANNEL_ID}
 
 dns.name: ${DNS_NAME}
 
