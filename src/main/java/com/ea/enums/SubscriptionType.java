@@ -2,9 +2,10 @@ package com.ea.enums;
 
 public enum SubscriptionType {
     SCOREBOARD("scoreboard"),
-    EVENTS("events"),
-    IP_UPDATE("ip-update"),
-    ACTIVITY_MAP("activity-map");
+    LOGS("logs"),
+    ALERTS("alerts"),
+    ACTIVITY_MAP("activity-map"),
+    STATUS("status");
 
     private final String value;
 

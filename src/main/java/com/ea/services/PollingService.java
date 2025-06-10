@@ -56,7 +56,7 @@ public class PollingService {
     private final ChannelSubscriptionService channelSubscriptionService;
 
     @PostConstruct
-    @Scheduled(fixedDelay = 20000)
+    @Scheduled(fixedDelay = 10000)
     public void updateBotActivity() {
         if (!botActivityEnabled) {
             log.debug("Bot activity updates are disabled");
@@ -70,7 +70,7 @@ public class PollingService {
         discordBotService.updateActivity(activity);
     }
 
-    @Scheduled(fixedDelay = 20000)
+    @Scheduled(fixedDelay = 10000)
     public void processDataSinceLastFetchTime() {
         if (!eventsEnabled) {
             log.debug("Events service is disabled");
@@ -168,8 +168,8 @@ public class PollingService {
 
         String message = String.join("\n", events.stream().map(Event::getMessage).toList());
 
-        List<ChannelSubscriptionEntity> eventSubs = channelSubscriptionService.getAllByType(SubscriptionType.EVENTS);
-        List<String> channelIds = eventSubs.stream().map(ChannelSubscriptionEntity::getChannelId).collect(Collectors.toList());
+        List<ChannelSubscriptionEntity> logSubs = channelSubscriptionService.getAllByType(SubscriptionType.LOGS);
+        List<String> channelIds = logSubs.stream().map(ChannelSubscriptionEntity::getChannelId).collect(Collectors.toList());
         discordBotService.sendMessage(channelIds, message);
     }
 
@@ -188,8 +188,8 @@ public class PollingService {
                 lastKnownIpEntity.setParamValue(currentIp);
                 paramRepository.save(lastKnownIpEntity);
 
-                List<ChannelSubscriptionEntity> ipSubs = channelSubscriptionService.getAllByType(SubscriptionType.IP_UPDATE);
-                List<String> channelIds = ipSubs.stream().map(ChannelSubscriptionEntity::getChannelId).collect(Collectors.toList());
+                List<ChannelSubscriptionEntity> alertSubs = channelSubscriptionService.getAllByType(SubscriptionType.ALERTS);
+                List<String> channelIds = alertSubs.stream().map(ChannelSubscriptionEntity::getChannelId).collect(Collectors.toList());
                 discordBotService.sendMessage(channelIds, String.format("⚠️ New DNS address: `%s`", currentIp));
             }
         }

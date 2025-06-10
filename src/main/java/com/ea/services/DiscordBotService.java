@@ -45,25 +45,42 @@ public class DiscordBotService {
             public void onReady(ReadyEvent event) {
                 jda.updateCommands()
                     .addCommands(
-                        Commands.slash("subscribe", "Subscribe this channel to updates")
+                        Commands.slash("subscribe", "Subscribe this channel to updates. Types: scoreboard, logs, alerts, activity-map, status")
                             .addOptions(
                                 new OptionData(OptionType.STRING, "type", "Type of updates to subscribe to", true)
                                     .addChoices(
-                                        new Command.Choice(SubscriptionType.SCOREBOARD.getValue(), SubscriptionType.SCOREBOARD.getValue()),
-                                        new Command.Choice(SubscriptionType.EVENTS.getValue(), SubscriptionType.EVENTS.getValue()),
-                                        new Command.Choice(SubscriptionType.IP_UPDATE.getValue(), SubscriptionType.IP_UPDATE.getValue()),
-                                        new Command.Choice(SubscriptionType.ACTIVITY_MAP.getValue(), SubscriptionType.ACTIVITY_MAP.getValue())
+                                        new Command.Choice("Game scoreboards (end of round)", SubscriptionType.SCOREBOARD.getValue()),
+                                        new Command.Choice("Player connection/game logs", SubscriptionType.LOGS.getValue()),
+                                        new Command.Choice("Alerts: DNS IP update, maintenance", SubscriptionType.ALERTS.getValue()),
+                                        new Command.Choice("Periodic activity map", SubscriptionType.ACTIVITY_MAP.getValue()),
+                                        new Command.Choice("Server status (games, players). Should be used on its own channel", SubscriptionType.STATUS.getValue())
                                     )
                             ),
-                        Commands.slash("unsubscribe", "Unsubscribe this server from updates")
+                        Commands.slash("unsubscribe", "Unsubscribe this server from updates. Types: scoreboard, logs, alerts, activity-map, status")
                             .addOptions(
                                 new OptionData(OptionType.STRING, "type", "Type of updates to unsubscribe from", true)
                                     .addChoices(
-                                        new Command.Choice(SubscriptionType.SCOREBOARD.getValue(), SubscriptionType.SCOREBOARD.getValue()),
-                                        new Command.Choice(SubscriptionType.EVENTS.getValue(), SubscriptionType.EVENTS.getValue()),
-                                        new Command.Choice(SubscriptionType.IP_UPDATE.getValue(), SubscriptionType.IP_UPDATE.getValue()),
-                                        new Command.Choice(SubscriptionType.ACTIVITY_MAP.getValue(), SubscriptionType.ACTIVITY_MAP.getValue())
+                                        new Command.Choice("Game scoreboards (end of round)", SubscriptionType.SCOREBOARD.getValue()),
+                                        new Command.Choice("Player connection/game logs", SubscriptionType.LOGS.getValue()),
+                                        new Command.Choice("Alerts: DNS IP update, maintenance", SubscriptionType.ALERTS.getValue()),
+                                        new Command.Choice("Periodic activity map", SubscriptionType.ACTIVITY_MAP.getValue()),
+                                        new Command.Choice("Server status (games, players)", SubscriptionType.STATUS.getValue())
                                     )
+                            ),
+                        Commands.slash("alert", "Send an alert to all 'alerts' subscribers (restricted to alert role)")
+                            .addOptions(
+                                new OptionData(OptionType.STRING, "message", "The alert message to broadcast", true)
+                            ),
+                        Commands.slash("dns", "Show the current DNS IP address"),
+                        Commands.slash("stats", "Show player stats")
+                            .addOptions(
+                                new OptionData(OptionType.STRING, "game", "Game name", true)
+                                    .addChoices(
+                                        new Command.Choice("psp/mohh", "PSP/MOH07"),
+                                        new Command.Choice("psp/mohh2", "PSP/MOH08"),
+                                        new Command.Choice("wii/mohh2", "WII/MOH08")
+                                    ),
+                                new OptionData(OptionType.STRING, "name", "Player name", true)
                             )
                     )
                     .queue();
