@@ -199,7 +199,7 @@ public class WorldMapGenerator {
 
             List<ChannelSubscriptionEntity> mapSubs = channelSubscriptionService.getAllByType(SubscriptionType.ACTIVITY_MAP);
             List<String> channelIds = mapSubs.stream().map(ChannelSubscriptionEntity::getChannelId).collect(Collectors.toList());
-            discordBotService.sendImage(channelIds, outputFile, "Weekly activity map");
+            discordBotService.sendImage(channelIds, outputFile, "🗺️ Weekly activity map");
         } finally {
             dataStore.dispose();
         }
@@ -389,7 +389,7 @@ public class WorldMapGenerator {
 
             List<ChannelSubscriptionEntity> mapSubs = channelSubscriptionService.getAllByType(SubscriptionType.ACTIVITY_MAP);
             List<String> channelIds = mapSubs.stream().map(ChannelSubscriptionEntity::getChannelId).collect(Collectors.toList());
-            discordBotService.sendImage(channelIds, outputFile, "Weekly density map");
+            discordBotService.sendImage(channelIds, outputFile, "🗺️ Weekly density map");
         } finally {
             dataStore.dispose();
         }

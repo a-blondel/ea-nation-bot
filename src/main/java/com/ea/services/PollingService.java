@@ -12,6 +12,7 @@ import com.ea.repositories.GameRepository;
 import com.ea.repositories.PersonaConnectionRepository;
 import com.ea.repositories.discord.ParamRepository;
 import com.ea.entities.discord.ChannelSubscriptionEntity;
+import com.ea.utils.GameVersUtils;
 import jakarta.annotation.PostConstruct;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -63,8 +64,8 @@ public class PollingService {
         }
         ParamEntity lastKnownIpEntity = paramRepository.findById(Params.LAST_KNOWN_IP.name()).orElse(null);
         String currentIp = lastKnownIpEntity != null ? lastKnownIpEntity.getParamValue() : "UNKNOWN";
-        int currentPlayersOnline = personaConnectionRepository.countByIsHostIsFalseAndEndTimeIsNull();
-        int currentPlayersInGame = gameReportRepository.countByIsHostIsFalseAndEndTimeIsNull();
+        int currentPlayersOnline = personaConnectionRepository.countPlayersOnline();
+        int currentPlayersInGame = gameReportRepository.countPlayersInGame();
         String activity = "🌐 " + currentPlayersOnline + " 🎮 " + currentPlayersInGame + " 💻 " + currentIp;
         discordBotService.updateActivity(activity);
     }
@@ -101,31 +102,66 @@ public class PollingService {
     }
 
     private void processPlayerEvents(LocalDateTime lastFetchTime, LocalDateTime currentFetchTime) {
-        List<PersonaConnectionEntity> personaLogins = personaConnectionRepository.findByIsHostIsFalseAndStartTimeBetweenOrderByStartTime(lastFetchTime, currentFetchTime);
-        List<PersonaConnectionEntity> personaLogouts = personaConnectionRepository.findByIsHostIsFalseAndEndTimeBetweenOrderByEndTime(lastFetchTime, currentFetchTime);
 
-        List<GameReportEntity> gameJoining = gameReportRepository.findByIsHostIsFalseAndStartTimeBetweenOrderByStartTime(lastFetchTime, currentFetchTime);
-        List<GameReportEntity> gameLeaving = gameReportRepository.findByIsHostIsFalseAndEndTimeBetweenOrderByEndTime(lastFetchTime, currentFetchTime);
+        List<PersonaConnectionEntity> personaLogins = personaConnectionRepository.findPersonaLogins(lastFetchTime, currentFetchTime);
+        List<PersonaConnectionEntity> personaLogouts = personaConnectionRepository.findPersonaLogouts(lastFetchTime, currentFetchTime);
+
+        List<GameReportEntity> rawGameJoining = gameReportRepository.findPlayerJoins(lastFetchTime, currentFetchTime);
+        List<GameReportEntity> gameLeaving = gameReportRepository.findPlayerLeaves(lastFetchTime, currentFetchTime);
+
+        // Filter out map rotation joins: if there is a previous GameReportEntity for the same personaConnection
+        // where previousReport.endTime == previousReport.game.endTime and previousReport.endTime == this.startTime, skip
+        List<GameReportEntity> gameJoining = new ArrayList<>();
+        for (GameReportEntity join : rawGameJoining) {
+            PersonaConnectionEntity personaConn = join.getPersonaConnection();
+            LocalDateTime joinStart = join.getStartTime();
+            // Find previous report for this personaConnection that ends exactly at this join's start time
+            GameReportEntity prev = gameReportRepository
+                .findFirstByPersonaConnectionAndEndTimeOrderByEndTimeDesc(personaConn, joinStart);
+            if (prev != null && prev.getEndTime() != null && prev.getGame() != null && prev.getEndTime().equals(prev.getGame().getEndTime())) {
+                // This is a map rotation, skip
+                continue;
+            }
+            gameJoining.add(join);
+        }
 
         List<Event> events = new ArrayList<>();
 
         for (PersonaConnectionEntity login : personaLogins) {
-            events.add(new Event(login.getId(), login.getStartTime(),
-                    login.getPersona().getPers().replaceAll("\"", "") + " connected"));
+            String persona = login.getPersona().getPers().replace("\"", "");
+            String version = GameVersUtils.getGameNameByVersion(login.getVers());
+            events.add(new Event(
+                    login.getId(),
+                    login.getStartTime(),
+                    "🟢 **" + persona + "** connected to `" + version + "`"
+            ));
         }
         for (PersonaConnectionEntity logout : personaLogouts) {
-            events.add(new Event(logout.getId(), logout.getEndTime(),
-                    logout.getPersona().getPers().replaceAll("\"", "") + " disconnected"));
+            String persona = logout.getPersona().getPers().replace("\"", "");
+            String version = GameVersUtils.getGameNameByVersion(logout.getVers());
+            events.add(new Event(
+                    logout.getId(),
+                    logout.getEndTime(),
+                    "🔴 **" + persona + "** disconnected from `" + version + "`"
+            ));
         }
         for (GameReportEntity join : gameJoining) {
-            events.add(new Event(join.getId(), join.getStartTime(),
-                    join.getPersonaConnection().getPersona().getPers().replaceAll("\"", "") +
-                            " joined game " + join.getGame().getName().replaceAll("\"", "")));
+            String persona = join.getPersonaConnection().getPersona().getPers().replace("\"", "");
+            String gameName = join.getGame().getName().replace("\"", "");
+            events.add(new Event(
+                    join.getId(),
+                    join.getStartTime(),
+                    "➡️ **" + persona + "** joined game `" + gameName + "`"
+            ));
         }
         for (GameReportEntity leave : gameLeaving) {
-            events.add(new Event(leave.getId(), leave.getEndTime(),
-                    leave.getPersonaConnection().getPersona().getPers().replaceAll("\"", "") +
-                            " left game " + leave.getGame().getName().replaceAll("\"", "")));
+            String persona = leave.getPersonaConnection().getPersona().getPers().replace("\"", "");
+            String gameName = leave.getGame().getName().replace("\"", "");
+            events.add(new Event(
+                    leave.getId(),
+                    leave.getEndTime(),
+                    "⬅️ **" + persona + "** left game `" + gameName + "`"
+            ));
         }
 
         Collections.sort(events); // use comparator of Event class
@@ -154,7 +190,7 @@ public class PollingService {
 
                 List<ChannelSubscriptionEntity> ipSubs = channelSubscriptionService.getAllByType(SubscriptionType.IP_UPDATE);
                 List<String> channelIds = ipSubs.stream().map(ChannelSubscriptionEntity::getChannelId).collect(Collectors.toList());
-                discordBotService.sendMessage(channelIds, "New DNS address: " + currentIp);
+                discordBotService.sendMessage(channelIds, String.format("⚠️ New DNS address: `%s`", currentIp));
             }
         }
     }
