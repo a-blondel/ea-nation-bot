@@ -5,6 +5,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.nio.file.Files;
 import java.nio.file.StandardCopyOption;
+import java.text.Normalizer;
 import java.time.Duration;
 import java.time.format.DateTimeFormatter;
 import java.util.*;
@@ -52,11 +53,11 @@ public class ScoreboardService {
     public void generateScoreboard(GameEntity game) {
         log.info("Generating scoreboard for game #{}", game.getId());
         try {
-            Context context = new Context();
-            boolean proceed = setGameInfoIntoContext(context, game);
-            if(!proceed) {
+            Context baseContext = new Context();
+            GameInfoResult gameInfo = setGameInfoIntoContextChunkable(baseContext, game);
+            if (!gameInfo.proceed) {
                 log.info("Skipping game #{}", game.getId());
-                return; // The report is not interesting (no kills or less than 2 players)
+                return;
             }
 
             try (InputStream cssStream = getClass().getResourceAsStream("/static/styles.css")) {
@@ -64,54 +65,137 @@ public class ScoreboardService {
                     throw new IOException("Could not find resource styles.css");
                 }
                 String cssContent = new String(cssStream.readAllBytes());
-                context.setVariable("styles", cssContent);
+                baseContext.setVariable("styles", cssContent);
             }
 
-            setImagesIntoContext(context);
+            setImagesIntoContext(baseContext);
 
-            String htmlContent;
-            if(context.getVariable("gameModeId").toString().equals("8")) {
-                htmlContent = templateEngine.process("scoreboard-dm", context);
+            List<File> imageFiles = new ArrayList<>();
+            String gameModeId = baseContext.getVariable("gameModeId").toString();
+            if (gameModeId.equals("8")) {
+                // Deathmatch: chunk all reports into groups of 16
+                List<List<GameReportEntity>> chunks = chunkList(gameInfo.dmReports, 16);
+                for (int i = 0; i < chunks.size(); i++) {
+                    Context context = cloneContext(baseContext);
+                    context.setVariable("reports", chunks.get(i));
+                    String winner = gameInfo.dmWinner;
+                    context.setVariable("winner", winner == null ? "Draw Battle" : winner + " Wins the Battle");
+                    String gameName = normalizeString(game.getName().replaceAll("\"", ""));
+                    if (chunks.size() > 1) {
+                        context.setVariable("gameName", gameName + " (" + (i+1) + "/" + chunks.size() + ")");
+                    } else {
+                        context.setVariable("gameName", gameName);
+                    }
+                    String htmlContent = templateEngine.process("scoreboard-dm", context);
+                    File imageFile = renderHtmlToImage(htmlContent, game.getId(), i+1, chunks.size());
+                    imageFiles.add(imageFile);
+                }
             } else {
-                htmlContent = templateEngine.process("scoreboard-team", context);
+                // Team: chunk axis and allies separately, then pair up
+                List<List<GameReportEntity>> axisChunks = chunkList(gameInfo.axisReports, 16);
+                List<List<GameReportEntity>> alliesChunks = chunkList(gameInfo.alliesReports, 16);
+                int maxChunks = Math.max(axisChunks.size(), alliesChunks.size());
+                for (int i = 0; i < maxChunks; i++) {
+                    Context context = cloneContext(baseContext);
+                    context.setVariable("axisReports", i < axisChunks.size() ? axisChunks.get(i) : new ArrayList<>());
+                    context.setVariable("alliesReports", i < alliesChunks.size() ? alliesChunks.get(i) : new ArrayList<>());
+                    context.setVariable("axisTotalKills", gameInfo.axisTotalKills);
+                    context.setVariable("axisTotalDeaths", gameInfo.axisTotalDeaths);
+                    context.setVariable("alliesTotalKills", gameInfo.alliesTotalKills);
+                    context.setVariable("alliesTotalDeaths", gameInfo.alliesTotalDeaths);
+                    context.setVariable("winner", gameInfo.teamWinner);
+                    String gameName = normalizeString(game.getName().replaceAll("\"", ""));
+                    if (maxChunks > 1) {
+                        context.setVariable("gameName", gameName + " (" + (i+1) + "/" + maxChunks + ")");
+                    } else {
+                        context.setVariable("gameName", gameName);
+                    }
+                    String htmlContent = templateEngine.process("scoreboard-team", context);
+                    File imageFile = renderHtmlToImage(htmlContent, game.getId(), i+1, maxChunks);
+                    imageFiles.add(imageFile);
+                }
             }
-
-            File htmlFile = File.createTempFile("scoreboard", ".html");
-            Files.writeString(htmlFile.toPath(), htmlContent);
-
-            ChromeOptions options = new ChromeOptions();
-            options.addArguments("--headless=new",
-                "--disable-extensions",
-                "--no-sandbox",
-                "--disable-dev-shm-usage",
-                "--disable-gpu",
-                "--window-size=1920,1080",
-                "--hide-scrollbars",
-                "--allow-file-access-from-files");
-            WebDriver driver = new ChromeDriver(options);
-            driver.get(htmlFile.toURI().toString());
-
-            File screenshot = ((TakesScreenshot) driver).getScreenshotAs(OutputType.FILE);
-            File imageDir = new File(reportsPath);
-            if (!imageDir.exists()) {
-                imageDir.mkdirs();
-            }
-            File imageFile = new File(imageDir, "scoreboard_#" + game.getId() + ".png");
-            Files.copy(screenshot.toPath(), imageFile.toPath(), StandardCopyOption.REPLACE_EXISTING);
-
-            driver.quit();
-            htmlFile.delete();
 
             List<ChannelSubscriptionEntity> scoreboardSubs = channelSubscriptionService.getAllByType(SubscriptionType.SCOREBOARD);
             List<String> channelIds = scoreboardSubs.stream().map(ChannelSubscriptionEntity::getChannelId).collect(Collectors.toList());
-            discordBotService.sendImage(channelIds, imageFile, null);
+            discordBotService.sendImages(channelIds, imageFiles, null);
 
         } catch (Exception e) {
             log.error("Error generating scoreboard for game #{}", game.getId(), e);
         }
     }
 
-    private boolean setGameInfoIntoContext(Context context, GameEntity game) {
+    // Normalize string for HTML display (NFKC normalization, remove problematic chars)
+    private String normalizeString(String input) {
+        if (input == null) return "";
+        String normalized = Normalizer.normalize(input, Normalizer.Form.NFKC);
+        // Remove any non-printable/control characters
+        normalized = normalized.replaceAll("[\\p{C}]", "");
+        return normalized.trim();
+    }
+
+    // Helper to render HTML to image file
+    private File renderHtmlToImage(String htmlContent, long gameId, int page, int totalPages) throws IOException {
+        File htmlFile = File.createTempFile("scoreboard", ".html");
+        Files.writeString(htmlFile.toPath(), htmlContent);
+        ChromeOptions options = new ChromeOptions();
+        options.addArguments("--headless=new",
+            "--disable-extensions",
+            "--no-sandbox",
+            "--disable-dev-shm-usage",
+            "--disable-gpu",
+            "--window-size=1920,1080",
+            "--hide-scrollbars",
+            "--allow-file-access-from-files");
+        WebDriver driver = new ChromeDriver(options);
+        driver.get(htmlFile.toURI().toString());
+        File screenshot = ((TakesScreenshot) driver).getScreenshotAs(OutputType.FILE);
+        File imageDir = new File(reportsPath);
+        if (!imageDir.exists()) {
+            imageDir.mkdirs();
+        }
+        String suffix = totalPages > 1 ? ("_" + page) : "";
+        File imageFile = new File(imageDir, "scoreboard_#" + gameId + suffix + ".png");
+        Files.copy(screenshot.toPath(), imageFile.toPath(), StandardCopyOption.REPLACE_EXISTING);
+        driver.quit();
+        htmlFile.delete();
+        return imageFile;
+    }
+
+    // Helper to chunk a list
+    private <T> List<List<T>> chunkList(List<T> list, int chunkSize) {
+        List<List<T>> chunks = new ArrayList<>();
+        for (int i = 0; i < list.size(); i += chunkSize) {
+            chunks.add(list.subList(i, Math.min(i + chunkSize, list.size())));
+        }
+        return chunks;
+    }
+
+    // Helper to clone a Thymeleaf context
+    private Context cloneContext(Context original) {
+        Context clone = new Context();
+        for (String key : original.getVariableNames()) {
+            clone.setVariable(key, original.getVariable(key));
+        }
+        return clone;
+    }
+
+    // Helper class to return all info needed for chunking
+    private static class GameInfoResult {
+        boolean proceed;
+        List<GameReportEntity> dmReports;
+        String dmWinner;
+        List<GameReportEntity> axisReports;
+        List<GameReportEntity> alliesReports;
+        int axisTotalKills;
+        int axisTotalDeaths;
+        int alliesTotalKills;
+        int alliesTotalDeaths;
+        String teamWinner;
+    }
+
+    // Get all reports for chunking
+    private GameInfoResult setGameInfoIntoContextChunkable(Context context, GameEntity game) {
         context.setVariable("gameName", game.getName().replaceAll("\"", ""));
         String[] params = game.getParams().split(",");
         String gameModeId = params[0];
@@ -127,7 +211,6 @@ public class ScoreboardService {
 
         Set<GameReportEntity> reports = game.getGameReports();
         Map<String, GameReportEntity> aggregatedReports = new HashMap<>();
-
         for (GameReportEntity report : reports) {
             if(report.getPersonaConnection().isHost()) {
                 continue;
@@ -142,96 +225,80 @@ public class ScoreboardService {
             }
         }
 
+        GameInfoResult result = new GameInfoResult();
         if(aggregatedReports.size() < 2 || aggregatedReports.values().stream().noneMatch(report -> report.getKill() > 0)) {
-            return false;
+            result.proceed = false;
+            return result;
         }
+        result.proceed = true;
 
         if(gameModeId.equals("8")) {
-            setDeathmatchInfoIntoContext(context, aggregatedReports);
+            // Deathmatch
+            List<GameReportEntity> sortedReports = aggregatedReports.values().stream()
+                    .filter(report -> report.getKill() > 0 || report.getDeath() > 0)
+                    .sorted((report1, report2) -> {
+                        int score1 = report1.getKill() - report1.getDeath();
+                        int score2 = report2.getKill() - report2.getDeath();
+                        return Integer.compare(score2, score1);
+                    })
+                    .peek(report -> {
+                        String persona = report.getPersonaConnection().getPersona().getPers().replaceAll("\"", "");
+                        report.getPersonaConnection().getPersona().setPers(persona);
+                    })
+                    .toList();
+            result.dmReports = sortedReports;
+            result.dmWinner = sortedReports.stream()
+                    .filter(report -> report.getWin() > 0)
+                    .findFirst()
+                    .map(report -> report.getPersonaConnection().getPersona().getPers())
+                    .orElse(null);
         } else {
-            setTeamInfoIntoContext(context, aggregatedReports);
+            // Team
+            List<GameReportEntity> sortedAxisReports = aggregatedReports.values().stream()
+                    .filter(report -> report.getKill() > 0 || report.getDeath() > 0)
+                    .filter(report -> report.getAxis() > 0 || (report.getAllies() == 0 && isMostlyAxis(report)))
+                    .sorted((report1, report2) -> {
+                        int score1 = report1.getKill() - report1.getDeath();
+                        int score2 = report2.getKill() - report2.getDeath();
+                        return Integer.compare(score2, score1);
+                    })
+                    .peek(report -> {
+                        String persona = report.getPersonaConnection().getPersona().getPers().replaceAll("\"", "");
+                        report.getPersonaConnection().getPersona().setPers(persona);
+                    })
+                    .toList();
+
+            List<GameReportEntity> sortedAlliesReports = aggregatedReports.values().stream()
+                    .filter(report -> report.getKill() > 0 || report.getDeath() > 0)
+                    .filter(report -> report.getAllies() > 0 || (report.getAxis() == 0 && !isMostlyAxis(report)))
+                    .sorted((report1, report2) -> {
+                        int score1 = report1.getKill() - report1.getDeath();
+                        int score2 = report2.getKill() - report2.getDeath();
+                        return Integer.compare(score2, score1);
+                    })
+                    .peek(report -> {
+                        String persona = report.getPersonaConnection().getPersona().getPers().replaceAll("\"", "");
+                        report.getPersonaConnection().getPersona().setPers(persona);
+                    })
+                    .toList();
+
+            result.axisReports = sortedAxisReports;
+            result.alliesReports = sortedAlliesReports;
+            result.axisTotalKills = sortedAxisReports.stream().mapToInt(GameReportEntity::getKill).sum();
+            result.axisTotalDeaths = sortedAxisReports.stream().mapToInt(GameReportEntity::getDeath).sum();
+            result.alliesTotalKills = sortedAlliesReports.stream().mapToInt(GameReportEntity::getKill).sum();
+            result.alliesTotalDeaths = sortedAlliesReports.stream().mapToInt(GameReportEntity::getDeath).sum();
+            result.teamWinner = sortedAxisReports.stream()
+                    .filter(report -> report.getWin() > 0)
+                    .findFirst()
+                    .map(report -> "Axis")
+                    .orElseGet(() -> sortedAlliesReports.stream()
+                            .filter(report -> report.getWin() > 0)
+                            .findFirst()
+                            .map(report -> "Allies")
+                            .orElse("Draw"));
         }
-        return true;
-    }
-
-    private void setDeathmatchInfoIntoContext(Context context, Map<String, GameReportEntity> aggregatedReports) {
-        List<GameReportEntity> sortedReports = aggregatedReports.values().stream()
-                .filter(report -> report.getKill() > 0 || report.getDeath() > 0)
-                .sorted((report1, report2) -> {
-                    int score1 = report1.getKill() - report1.getDeath();
-                    int score2 = report2.getKill() - report2.getDeath();
-                    return Integer.compare(score2, score1);
-                })
-                .peek(report -> {
-                    String persona = report.getPersonaConnection().getPersona().getPers().replaceAll("\"", "");
-                    report.getPersonaConnection().getPersona().setPers(persona);
-                })
-                .limit(16)
-                .toList();
-
-        String winner = sortedReports.stream()
-                        .filter(report -> report.getWin() > 0)
-                        .findFirst()
-                        .map(report -> report.getPersonaConnection().getPersona().getPers())
-                        .orElse(null);
-
-        context.setVariable("reports", sortedReports);
-        context.setVariable("winner", winner == null ? "Draw Battle" : winner + " Wins the Battle");
-    }
-
-    private void setTeamInfoIntoContext(Context context, Map<String, GameReportEntity> aggregatedReports) {
-        List<GameReportEntity> sortedAxisReports = aggregatedReports.values().stream()
-                .filter(report -> report.getKill() > 0 || report.getDeath() > 0)
-                .filter(report -> report.getAxis() > 0 || (report.getAllies() == 0 && isMostlyAxis(report)))
-                .sorted((report1, report2) -> {
-                    int score1 = report1.getKill() - report1.getDeath();
-                    int score2 = report2.getKill() - report2.getDeath();
-                    return Integer.compare(score2, score1);
-                })
-                .peek(report -> {
-                    String persona = report.getPersonaConnection().getPersona().getPers().replaceAll("\"", "");
-                    report.getPersonaConnection().getPersona().setPers(persona);
-                })
-                .limit(16)
-                .toList();
-
-        List<GameReportEntity> sortedAlliesReports = aggregatedReports.values().stream()
-                .filter(report -> report.getKill() > 0 || report.getDeath() > 0)
-                .filter(report -> report.getAllies() > 0 || (report.getAxis() == 0 && !isMostlyAxis(report)))
-                .sorted((report1, report2) -> {
-                    int score1 = report1.getKill() - report1.getDeath();
-                    int score2 = report2.getKill() - report2.getDeath();
-                    return Integer.compare(score2, score1);
-                })
-                .peek(report -> {
-                    String persona = report.getPersonaConnection().getPersona().getPers().replaceAll("\"", "");
-                    report.getPersonaConnection().getPersona().setPers(persona);
-                })
-                .limit(16)
-                .toList();
-
-        int axisTotalKills = sortedAxisReports.stream().mapToInt(GameReportEntity::getKill).sum();
-        int axisTotalDeaths = sortedAxisReports.stream().mapToInt(GameReportEntity::getDeath).sum();
-        int alliesTotalKills = sortedAlliesReports.stream().mapToInt(GameReportEntity::getKill).sum();
-        int alliesTotalDeaths = sortedAlliesReports.stream().mapToInt(GameReportEntity::getDeath).sum();
-
-        String winner = sortedAxisReports.stream()
-                        .filter(report -> report.getWin() > 0)
-                        .findFirst()
-                        .map(report -> "Axis")
-                        .orElseGet(() -> sortedAlliesReports.stream()
-                                .filter(report -> report.getWin() > 0)
-                                .findFirst()
-                                .map(report -> "Allies")
-                                .orElse("Draw"));
-
-        context.setVariable("axisReports", sortedAxisReports);
-        context.setVariable("alliesReports", sortedAlliesReports);
-        context.setVariable("axisTotalKills", axisTotalKills);
-        context.setVariable("axisTotalDeaths", axisTotalDeaths);
-        context.setVariable("alliesTotalKills", alliesTotalKills);
-        context.setVariable("alliesTotalDeaths", alliesTotalDeaths);
-        context.setVariable("winner", winner);
+        return result;
     }
 
     private boolean isMostlyAxis(GameReportEntity report) {

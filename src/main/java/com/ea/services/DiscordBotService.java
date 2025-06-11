@@ -102,19 +102,29 @@ public class DiscordBotService {
         }
     }
 
-    public void sendImage(List<String> channelIds, File imageFile, String message) {
+    public void sendImages(List<String> channelIds, List<File> imageFiles, String message) {
         if (!botActivityEnabled) {
-            log.debug("Bot activity is disabled, skipping image: {}", imageFile.getName());
+            log.debug("Bot activity is disabled, skipping images: {}", imageFiles.stream().map(File::getName).toList());
             return;
         }
         for (String channelId : channelIds) {
             TextChannel channel = jda.getTextChannelById(channelId);
             if (channel != null) {
                 Runnable sendTask = () -> {
-                    if (message == null || message.isEmpty()) {
-                        channel.sendFiles(FileUpload.fromData(imageFile)).queue();
-                    } else {
-                        channel.sendMessage(message).addFiles(FileUpload.fromData(imageFile)).queue();
+                    try {
+                        // Discord allows up to 10 files per message
+                        int batchSize = 10;
+                        for (int i = 0; i < imageFiles.size(); i += batchSize) {
+                            List<File> batch = imageFiles.subList(i, Math.min(i + batchSize, imageFiles.size()));
+                            List<FileUpload> uploads = batch.stream().map(FileUpload::fromData).toList();
+                            if (message == null || message.isEmpty() || i > 0) {
+                                channel.sendFiles(uploads).queue();
+                            } else {
+                                channel.sendMessage(message).addFiles(uploads).queue();
+                            }
+                        }
+                    } catch (Exception e) {
+                        log.error("Error sending images to Discord channel {}", channelId, e);
                     }
                 };
                 scheduler.schedule(sendTask, 1, TimeUnit.SECONDS);
