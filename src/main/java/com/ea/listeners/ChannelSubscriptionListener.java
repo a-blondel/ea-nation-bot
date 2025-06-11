@@ -6,6 +6,7 @@ import com.ea.enums.SubscriptionType;
 import com.ea.repositories.discord.ParamRepository;
 import com.ea.services.ChannelSubscriptionService;
 import com.ea.services.DiscordBotService;
+import com.ea.services.StatusMessageService;
 import jakarta.annotation.PostConstruct;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -27,6 +28,7 @@ public class ChannelSubscriptionListener extends ListenerAdapter {
     private final ChannelSubscriptionService subscriptionService;
     private final DiscordBotService discordBotService;
     private final ParamRepository paramRepository;
+    private final StatusMessageService statusMessageService;
 
     @PostConstruct
     public void register() {
@@ -56,10 +58,6 @@ public class ChannelSubscriptionListener extends ListenerAdapter {
             event.reply("Invalid subscription type.").setEphemeral(true).queue();
             return;
         }
-        if (subscriptionType == SubscriptionType.STATUS) {
-            event.reply("Status subscription is not yet available.").setEphemeral(true).queue();
-            return;
-        }
         if (!event.getMember().hasPermission(MANAGE_SERVER)) {
             event.reply("You must have the 'Manage Server' permission to use this command.").setEphemeral(true).queue();
             return;
@@ -68,9 +66,15 @@ public class ChannelSubscriptionListener extends ListenerAdapter {
         if (subscribe) {
             String channelId = event.getChannel().getId();
             subscriptionService.subscribe(guildId, channelId, subscriptionType);
+            if (subscriptionType == SubscriptionType.STATUS) {
+                statusMessageService.upsertStatusMessage(guildId, channelId);
+            }
             event.reply("Subscribed this channel for " + subscriptionType.getValue() + " updates.").setEphemeral(true).queue();
         } else {
             subscriptionService.unsubscribe(guildId, subscriptionType);
+            if (subscriptionType == SubscriptionType.STATUS) {
+                statusMessageService.deleteStatusMessage(guildId);
+            }
             event.reply("Unsubscribed this server from " + subscriptionType.getValue() + " updates.").setEphemeral(true).queue();
         }
     }
