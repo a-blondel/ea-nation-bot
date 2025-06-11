@@ -9,7 +9,7 @@ import java.time.Duration;
 import java.time.format.DateTimeFormatter;
 import java.util.*;
 
-import com.ea.entities.GameReportEntity;
+import com.ea.entities.game.GameReportEntity;
 import com.ea.entities.discord.ChannelSubscriptionEntity;
 import org.openqa.selenium.OutputType;
 import org.openqa.selenium.TakesScreenshot;
@@ -25,7 +25,7 @@ import org.springframework.stereotype.Service;
 import org.thymeleaf.TemplateEngine;
 import org.thymeleaf.context.Context;
 
-import com.ea.entities.GameEntity;
+import com.ea.entities.game.GameEntity;
 import com.ea.enums.MapMoHH;
 import com.ea.enums.SubscriptionType;
 

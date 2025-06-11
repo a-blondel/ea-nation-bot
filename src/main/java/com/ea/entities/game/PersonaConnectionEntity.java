@@ -1,4 +1,4 @@
-package com.ea.entities;
+package com.ea.entities.game;
 
 import jakarta.persistence.*;
 import lombok.Getter;

@@ -1,33 +1,34 @@
-package com.ea.entities;
+package com.ea.entities.game;
 
 import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
-import java.time.LocalDateTime;
-
 @Getter
 @Setter
 @NoArgsConstructor
 @Entity
-@Table(name = "GAME_REPORT", schema = "public")
-public class GameReportEntity {
+@Table(name = "PERSONA_STATS", schema = "public")
+public class PersonaStatsEntity {
 
     @Id
-    @GeneratedValue(strategy= GenerationType.IDENTITY)
+    @GeneratedValue(strategy=GenerationType.IDENTITY)
     private Long id;
 
     @ManyToOne
-    @JoinColumn(name="GAME_ID", nullable=false)
-    private GameEntity game;
+    @JoinColumn(name="PERSONA_ID", nullable=false)
+    private PersonaEntity persona;
 
-    @Column(name="IS_HOST", nullable=false)
-    private boolean isHost;
+    private String vers;
 
-    @ManyToOne
-    @JoinColumn(name="PERSONA_CONNECTION_ID", nullable=false)
-    private PersonaConnectionEntity personaConnection;
+    private String slus;
+
+    @Column(name = "KILL")
+    private int kill;
+
+    @Column(name = "DEATH")
+    private int death;
 
     @Column(name = "SHOT")
     private int shot;
@@ -37,12 +38,6 @@ public class GameReportEntity {
 
     @Column(name = "HEAD")
     private int head;
-
-    @Column(name="KILL")
-    private int kill;
-
-    @Column(name="DEATH")
-    private int death;
 
     @Column(name="COLTSHOT")
     private int coltShot;
@@ -346,20 +341,4 @@ public class GameReportEntity {
 
     @Column(name="PLAYTIME")
     private int playTime;
-
-    @Column(name="SERVTYPE")
-    private int servType;
-
-    @Column(name="AUTH")
-    private String auth;
-
-    @Column(name="RNK")
-    private int rnk;
-
-    @Column(name="START_TIME")
-    private LocalDateTime startTime;
-
-    @Column(name="END_TIME")
-    private LocalDateTime endTime;
-
 }

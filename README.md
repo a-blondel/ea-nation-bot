@@ -9,8 +9,8 @@
   - Sends an image of the scoreboard every time a game ends (if the game had at least 2 players and 1 kill/death) 
 - Events
   - Sends a message when players connect/disconnect and join/leave games
-- Weekly stats
-  - Sends an image of player connections using a heatmap
+- Playerbase activity map
+  - Periodically send a worldwide heatmap of player connections
 
 <img src="doc/bot-activity.png" alt="bot activity" /><br/>
 *Discord bot activity*
@@ -33,7 +33,6 @@ To start with the `dev` profile (containing database samples), use the following
 For the Discord bot to work, you need to define the appropriate environment variables :
 - `DNS_NAME` : the DNS name of the server
 - `DISCORD_TOKEN` : the token of the Discord bot
-- `DISCORD_CHANNEL_ID` : the ID of the Discord channel where the bot will send messages
 
 Otherwise, comment out the `DiscordBotService` methods.  
 

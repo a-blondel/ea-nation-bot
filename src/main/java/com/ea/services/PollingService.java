@@ -1,15 +1,15 @@
 package com.ea.services;
 
 import com.ea.model.Event;
-import com.ea.entities.GameEntity;
-import com.ea.entities.GameReportEntity;
-import com.ea.entities.PersonaConnectionEntity;
+import com.ea.entities.game.GameEntity;
+import com.ea.entities.game.GameReportEntity;
+import com.ea.entities.game.PersonaConnectionEntity;
 import com.ea.entities.discord.ParamEntity;
 import com.ea.enums.Params;
 import com.ea.enums.SubscriptionType;
-import com.ea.repositories.GameReportRepository;
-import com.ea.repositories.GameRepository;
-import com.ea.repositories.PersonaConnectionRepository;
+import com.ea.repositories.game.GameReportRepository;
+import com.ea.repositories.game.GameRepository;
+import com.ea.repositories.game.PersonaConnectionRepository;
 import com.ea.repositories.discord.ParamRepository;
 import com.ea.entities.discord.ChannelSubscriptionEntity;
 import com.ea.utils.GameVersUtils;

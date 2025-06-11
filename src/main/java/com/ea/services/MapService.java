@@ -1,9 +1,9 @@
 package com.ea.services;
 
-import com.ea.entities.PersonaConnectionEntity;
+import com.ea.entities.game.PersonaConnectionEntity;
 import com.ea.model.GeoLocation;
 import com.ea.model.LocationInfo;
-import com.ea.repositories.PersonaConnectionRepository;
+import com.ea.repositories.game.PersonaConnectionRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
