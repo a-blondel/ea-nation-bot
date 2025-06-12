@@ -1,17 +1,12 @@
 package com.ea.services;
 
-import java.io.File;
-import java.io.IOException;
-import java.io.InputStream;
-import java.nio.file.Files;
-import java.nio.file.StandardCopyOption;
-import java.text.Normalizer;
-import java.time.Duration;
-import java.time.format.DateTimeFormatter;
-import java.util.*;
-
-import com.ea.entities.game.GameReportEntity;
 import com.ea.entities.discord.ChannelSubscriptionEntity;
+import com.ea.entities.game.GameEntity;
+import com.ea.entities.game.GameReportEntity;
+import com.ea.enums.MapMoHH;
+import com.ea.enums.SubscriptionType;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.openqa.selenium.OutputType;
 import org.openqa.selenium.TakesScreenshot;
 import org.openqa.selenium.WebDriver;
@@ -26,13 +21,15 @@ import org.springframework.stereotype.Service;
 import org.thymeleaf.TemplateEngine;
 import org.thymeleaf.context.Context;
 
-import com.ea.entities.game.GameEntity;
-import com.ea.enums.MapMoHH;
-import com.ea.enums.SubscriptionType;
-
-import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
-import java.util.List;
+import java.io.File;
+import java.io.IOException;
+import java.io.InputStream;
+import java.nio.file.Files;
+import java.nio.file.StandardCopyOption;
+import java.text.Normalizer;
+import java.time.Duration;
+import java.time.format.DateTimeFormatter;
+import java.util.*;
 import java.util.stream.Collectors;
 
 @Slf4j
@@ -40,15 +37,11 @@ import java.util.stream.Collectors;
 @RequiredArgsConstructor
 public class ScoreboardService {
 
-    @Value("${discord.channel-id}")
-    private String discordChannelId;
-
-    @Value("${reports.path}")
-    private String reportsPath;
-
     private final TemplateEngine templateEngine;
     private final DiscordBotService discordBotService;
     private final ChannelSubscriptionService channelSubscriptionService;
+    @Value("${reports.path}")
+    private String reportsPath;
 
     public void generateScoreboard(GameEntity game) {
         log.info("Generating scoreboard for game #{}", game.getId());
@@ -82,12 +75,12 @@ public class ScoreboardService {
                     context.setVariable("winner", winner == null ? "Draw Battle" : winner + " Wins the Battle");
                     String gameName = normalizeString(game.getName().replaceAll("\"", ""));
                     if (chunks.size() > 1) {
-                        context.setVariable("gameName", gameName + " (" + (i+1) + "/" + chunks.size() + ")");
+                        context.setVariable("gameName", gameName + " (" + (i + 1) + "/" + chunks.size() + ")");
                     } else {
                         context.setVariable("gameName", gameName);
                     }
                     String htmlContent = templateEngine.process("scoreboard-dm", context);
-                    File imageFile = renderHtmlToImage(htmlContent, game.getId(), i+1, chunks.size());
+                    File imageFile = renderHtmlToImage(htmlContent, game.getId(), i + 1, chunks.size());
                     imageFiles.add(imageFile);
                 }
             } else {
@@ -106,12 +99,12 @@ public class ScoreboardService {
                     context.setVariable("winner", gameInfo.teamWinner);
                     String gameName = normalizeString(game.getName().replaceAll("\"", ""));
                     if (maxChunks > 1) {
-                        context.setVariable("gameName", gameName + " (" + (i+1) + "/" + maxChunks + ")");
+                        context.setVariable("gameName", gameName + " (" + (i + 1) + "/" + maxChunks + ")");
                     } else {
                         context.setVariable("gameName", gameName);
                     }
                     String htmlContent = templateEngine.process("scoreboard-team", context);
-                    File imageFile = renderHtmlToImage(htmlContent, game.getId(), i+1, maxChunks);
+                    File imageFile = renderHtmlToImage(htmlContent, game.getId(), i + 1, maxChunks);
                     imageFiles.add(imageFile);
                 }
             }
@@ -140,13 +133,13 @@ public class ScoreboardService {
         Files.writeString(htmlFile.toPath(), htmlContent);
         ChromeOptions options = new ChromeOptions();
         options.addArguments("--headless=new",
-            "--disable-extensions",
-            "--no-sandbox",
-            "--disable-dev-shm-usage",
-            "--disable-gpu",
-            "--window-size=1920,1080",
-            "--hide-scrollbars",
-            "--allow-file-access-from-files");
+                "--disable-extensions",
+                "--no-sandbox",
+                "--disable-dev-shm-usage",
+                "--disable-gpu",
+                "--window-size=1920,1080",
+                "--hide-scrollbars",
+                "--allow-file-access-from-files");
         WebDriver driver = new ChromeDriver(options);
         driver.get(htmlFile.toURI().toString());
         File screenshot = ((TakesScreenshot) driver).getScreenshotAs(OutputType.FILE);
@@ -180,20 +173,6 @@ public class ScoreboardService {
         return clone;
     }
 
-    // Helper class to return all info needed for chunking
-    private static class GameInfoResult {
-        boolean proceed;
-        List<GameReportEntity> dmReports;
-        String dmWinner;
-        List<GameReportEntity> axisReports;
-        List<GameReportEntity> alliesReports;
-        int axisTotalKills;
-        int axisTotalDeaths;
-        int alliesTotalKills;
-        int alliesTotalDeaths;
-        String teamWinner;
-    }
-
     // Get all reports for chunking
     private GameInfoResult setGameInfoIntoContextChunkable(Context context, GameEntity game) {
         context.setVariable("gameName", game.getName().replaceAll("\"", ""));
@@ -205,14 +184,14 @@ public class ScoreboardService {
         context.setVariable("friendlyFireMode", params[2]);
         context.setVariable("aimAssist", params[3]);
         context.setVariable("ranked", params[8]);
-        context.setVariable("hasPassword",  game.getPass() != null);
+        context.setVariable("hasPassword", game.getPass() != null);
         context.setVariable("gameStartTime", game.getStartTime().format(DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm:ss")));
         context.setVariable("gameDuration", Duration.between(game.getStartTime(), game.getEndTime()).toMinutes());
 
         Set<GameReportEntity> reports = game.getGameReports();
         Map<String, GameReportEntity> aggregatedReports = new HashMap<>();
         for (GameReportEntity report : reports) {
-            if(report.getPersonaConnection().isHost()) {
+            if (report.getPersonaConnection().isHost()) {
                 continue;
             }
             String personaConnectionId = report.getPersonaConnection().getPersona().getPers();
@@ -226,13 +205,13 @@ public class ScoreboardService {
         }
 
         GameInfoResult result = new GameInfoResult();
-        if(aggregatedReports.size() < 2 || aggregatedReports.values().stream().noneMatch(report -> report.getKill() > 0)) {
+        if (aggregatedReports.size() < 2 || aggregatedReports.values().stream().noneMatch(report -> report.getKill() > 0)) {
             result.proceed = false;
             return result;
         }
         result.proceed = true;
 
-        if(gameModeId.equals("8")) {
+        if (gameModeId.equals("8")) {
             // Deathmatch
             List<GameReportEntity> sortedReports = aggregatedReports.values().stream()
                     .filter(report -> report.getKill() > 0 || report.getDeath() > 0)
@@ -334,37 +313,37 @@ public class ScoreboardService {
 
         setImageIntoContext(context, new ClassPathResource("/static/images/logout.png"), "logoutImg");
 
-        if(context.getVariable("hasPassword").toString().equals("true")) {
+        if (context.getVariable("hasPassword").toString().equals("true")) {
             setImageIntoContext(context, new ClassPathResource("/static/images/password.png"), "passwordImg");
         }
 
-        if(context.getVariable("ranked").toString().equals("1")) {
+        if (context.getVariable("ranked").toString().equals("1")) {
             setImageIntoContext(context, new ClassPathResource("/static/images/ranked.png"), "rankedImg");
         }
 
         String friendlyFireMode = context.getVariable("friendlyFireMode").toString();
-        if(friendlyFireMode.equals("1") || friendlyFireMode.equals("2")) {
+        if (friendlyFireMode.equals("1") || friendlyFireMode.equals("2")) {
             Resource friendlyFireResource = friendlyFireMode.equals("1")
                     ? new ClassPathResource("/static/images/friendly-fire.png")
                     : new ClassPathResource("/static/images/reverse-friendly-fire.png");
             setImageIntoContext(context, friendlyFireResource, "friendlyFireImg");
         }
 
-        if(context.getVariable("aimAssist").toString().equals("1")) {
+        if (context.getVariable("aimAssist").toString().equals("1")) {
             setImageIntoContext(context, new ClassPathResource("/static/images/aim-assist.png"), "aimAssistImg");
         }
     }
 
     private Resource findImageByMapHexId(String mapHexId) throws IOException {
-    ResourcePatternResolver resolver = new PathMatchingResourcePatternResolver();
-    Resource[] resources = resolver.getResources("classpath:/static/images/maps/" + mapHexId + "*.jpg");
-    if (resources.length > 0) {
-        return resources[0];
-    } else {
-        throw new IOException("No image found for mapHexId: " + mapHexId);
+        ResourcePatternResolver resolver = new PathMatchingResourcePatternResolver();
+        Resource[] resources = resolver.getResources("classpath:/static/images/maps/" + mapHexId + "*.jpg");
+        if (resources.length > 0) {
+            return resources[0];
+        } else {
+            throw new IOException("No image found for mapHexId: " + mapHexId);
+        }
     }
-}
-    
+
     private void setImageIntoContext(Context context, Resource resource, String variableName) throws IOException {
         try (InputStream imageStream = resource.getInputStream()) {
             byte[] imageBytes = imageStream.readAllBytes();
@@ -372,5 +351,19 @@ public class ScoreboardService {
             String Img = "data:image/png;base64," + base64Image;
             context.setVariable(variableName, Img);
         }
+    }
+
+    // Helper class to return all info needed for chunking
+    private static class GameInfoResult {
+        boolean proceed;
+        List<GameReportEntity> dmReports;
+        String dmWinner;
+        List<GameReportEntity> axisReports;
+        List<GameReportEntity> alliesReports;
+        int axisTotalKills;
+        int axisTotalDeaths;
+        int alliesTotalKills;
+        int alliesTotalDeaths;
+        String teamWinner;
     }
 }
