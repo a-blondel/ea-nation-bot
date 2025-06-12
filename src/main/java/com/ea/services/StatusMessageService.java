@@ -20,8 +20,12 @@ import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.StandardCopyOption;
+import java.time.Duration;
 import java.time.Instant;
+import java.time.LocalDateTime;
 import java.util.List;
+import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.concurrent.CountDownLatch;
 
 @Slf4j
 @Service
@@ -51,28 +55,57 @@ public class StatusMessageService {
         }
         long unixTimestamp = Instant.now().getEpochSecond();
         String content = "Updated <t:" + unixTimestamp + ":R>";
+
+        // Use CountDownLatch to wait for all async operations
+        CountDownLatch latch = new CountDownLatch(entries.size());
+        List<StatusMessageEntity> updatedEntries = new CopyOnWriteArrayList<>();
+
         for (StatusMessageEntity entry : entries) {
             TextChannel channel = jda.getTextChannelById(entry.getChannelId());
-            if (channel == null) continue;
+            if (channel == null) {
+                latch.countDown();
+                continue;
+            }
             try {
                 if (entry.getMessageId() == null) {
                     channel.sendMessage(content)
                             .addFiles(FileUpload.fromData(screenshot, "status.png"))
                             .queue(msg -> {
                                 entry.setMessageId(msg.getId());
-                                entry.setUpdatedAt(java.time.LocalDateTime.now());
-                                statusMessageRepository.save(entry);
+                                entry.setUpdatedAt(LocalDateTime.now());
+                                updatedEntries.add(entry);
+                                latch.countDown();
+                            }, error -> {
+                                log.error("Failed to send status message for channel {}", entry.getChannelId(), error);
+                                latch.countDown();
                             });
                 } else {
                     channel.editMessageById(entry.getMessageId(), content)
                             .setFiles(FileUpload.fromData(screenshot, "status.png"))
-                            .queue();
-                    entry.setUpdatedAt(java.time.LocalDateTime.now());
-                    statusMessageRepository.save(entry);
+                            .queue(success -> {
+                                entry.setUpdatedAt(LocalDateTime.now());
+                                updatedEntries.add(entry);
+                                latch.countDown();
+                            }, error -> {
+                                log.error("Failed to edit status message for channel {}", entry.getChannelId(), error);
+                                latch.countDown();
+                            });
                 }
             } catch (Exception e) {
                 log.error("Failed to send or edit status message for channel {}", entry.getChannelId(), e);
+                latch.countDown();
             }
+        }
+
+        try {
+            latch.await();
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            log.error("Interrupted while waiting for Discord message operations to complete", e);
+        }
+
+        if (!updatedEntries.isEmpty()) {
+            statusMessageRepository.saveAll(updatedEntries);
         }
         screenshot.delete();
     }
@@ -86,7 +119,7 @@ public class StatusMessageService {
 
         // Wait for the loading div to disappear (data loaded)
         try {
-            new WebDriverWait(driver, java.time.Duration.ofSeconds(10))
+            new WebDriverWait(driver, Duration.ofSeconds(10))
                     .until(d -> {
                         WebElement loading = d.findElement(By.id("loading"));
                         return !loading.isDisplayed() || "none".equals(loading.getCssValue("display"));
@@ -158,7 +191,7 @@ public class StatusMessageService {
                 .orElseGet(StatusMessageEntity::new);
         entry.setGuildId(guildId);
         entry.setChannelId(channelId);
-        entry.setUpdatedAt(java.time.LocalDateTime.now());
+        entry.setUpdatedAt(LocalDateTime.now());
         statusMessageRepository.save(entry);
     }
 
