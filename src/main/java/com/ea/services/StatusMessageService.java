@@ -24,6 +24,7 @@ import java.time.Duration;
 import java.time.Instant;
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.CountDownLatch;
 
@@ -116,6 +117,27 @@ public class StatusMessageService {
         options.addArguments("--headless=new", "--disable-extensions", "--no-sandbox", "--disable-dev-shm-usage", "--disable-gpu", "--window-size=1240,1200", "--hide-scrollbars");
         WebDriver driver = new ChromeDriver(options);
         driver.get(statusUrl);
+
+        // Force dark mode for prefers-color-scheme
+        try {
+            ((ChromeDriver) driver).executeCdpCommand(
+                    "Emulation.setEmulatedMedia",
+                    Map.of("features", List.of(
+                            Map.of("name", "prefers-color-scheme", "value", "dark")
+                    ))
+            );
+        } catch (Exception e) {
+            log.warn("Could not set prefers-color-scheme to dark: {}", e.getMessage());
+        }
+
+        // Also set theme attribute and localStorage for frontend JS
+        try {
+            ((JavascriptExecutor) driver).executeScript(
+                    "document.documentElement.setAttribute('data-theme', 'dark'); localStorage.setItem('theme', 'dark');"
+            );
+        } catch (Exception e) {
+            log.warn("Could not set data-theme or localStorage for dark mode: {}", e.getMessage());
+        }
 
         // Wait for the loading div to disappear (data loaded)
         try {
