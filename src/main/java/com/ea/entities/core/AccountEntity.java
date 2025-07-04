@@ -1,4 +1,4 @@
-package com.ea.entities.game;
+package com.ea.entities.core;
 
 import jakarta.persistence.*;
 import lombok.Getter;
@@ -12,11 +12,11 @@ import java.util.Set;
 @Setter
 @NoArgsConstructor
 @Entity
-@Table(name = "ACCOUNT", schema = "public")
+@Table(name = "ACCOUNT", schema = "core")
 public class AccountEntity {
 
     @Id
-    @GeneratedValue(strategy=GenerationType.IDENTITY)
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
     private String name;
@@ -55,7 +55,7 @@ public class AccountEntity {
 
     private LocalDateTime updatedOn;
 
-    @OneToMany(mappedBy="account", fetch = FetchType.EAGER)
+    @OneToMany(mappedBy = "account", fetch = FetchType.EAGER)
     @OrderBy("id DESC")
     private Set<PersonaEntity> personas;
 

@@ -1,4 +1,4 @@
-package com.ea.entities.game;
+package com.ea.entities.core;
 
 import jakarta.persistence.*;
 import lombok.Getter;
@@ -12,11 +12,11 @@ import java.util.Set;
 @Setter
 @NoArgsConstructor
 @Entity
-@Table(name = "GAME", schema = "public")
+@Table(name = "GAME", schema = "core")
 public class GameEntity {
 
     @Id
-    @GeneratedValue(strategy= GenerationType.IDENTITY)
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
     private Long originalId;
@@ -41,7 +41,7 @@ public class GameEntity {
 
     private LocalDateTime endTime;
 
-    @OneToMany(mappedBy="game", fetch = FetchType.EAGER)
-    private Set<GameReportEntity> gameReports;
+    @OneToMany(mappedBy = "game", fetch = FetchType.EAGER)
+    private Set<GameConnectionEntity> gameConnections;
 
 }

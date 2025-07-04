@@ -1,6 +1,6 @@
-package com.ea.repositories.game;
+package com.ea.repositories.core;
 
-import com.ea.entities.game.AccountEntity;
+import com.ea.entities.core.AccountEntity;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 

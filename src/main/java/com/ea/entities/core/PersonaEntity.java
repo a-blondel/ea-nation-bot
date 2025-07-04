@@ -1,5 +1,6 @@
-package com.ea.entities.game;
+package com.ea.entities.core;
 
+import com.ea.entities.stats.MohhPersonaStatsEntity;
 import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -12,15 +13,15 @@ import java.util.Set;
 @Setter
 @NoArgsConstructor
 @Entity
-@Table(name = "PERSONA", schema = "public")
+@Table(name = "PERSONA", schema = "core")
 public class PersonaEntity {
 
     @Id
-    @GeneratedValue(strategy=GenerationType.IDENTITY)
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
     @ManyToOne
-    @JoinColumn(name="ACCOUNT_ID", nullable=false)
+    @JoinColumn(name = "ACCOUNT_ID", nullable = false)
     private AccountEntity account;
 
     private String pers;
@@ -32,9 +33,9 @@ public class PersonaEntity {
     private LocalDateTime deletedOn;
 
     @OneToMany(mappedBy = "persona", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
-    private Set<PersonaStatsEntity> personaStats;
+    private Set<MohhPersonaStatsEntity> personaStats;
 
-    @OneToMany(mappedBy="persona", fetch = FetchType.EAGER)
+    @OneToMany(mappedBy = "persona", fetch = FetchType.EAGER)
     private Set<PersonaConnectionEntity> personaConnections;
 
 }

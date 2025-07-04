@@ -1,4 +1,4 @@
-package com.ea.entities.game;
+package com.ea.entities.core;
 
 import jakarta.persistence.*;
 import lombok.Getter;
@@ -12,15 +12,15 @@ import java.util.Set;
 @Setter
 @NoArgsConstructor
 @Entity
-@Table(name = "PERSONA_CONNECTION", schema = "public")
+@Table(name = "PERSONA_CONNECTION", schema = "core")
 public class PersonaConnectionEntity {
 
     @Id
-    @GeneratedValue(strategy=GenerationType.IDENTITY)
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
     @ManyToOne
-    @JoinColumn(name="PERSONA_ID", nullable=false)
+    @JoinColumn(name = "PERSONA_ID", nullable = false)
     private PersonaEntity persona;
 
     private String address;
@@ -36,6 +36,6 @@ public class PersonaConnectionEntity {
     private LocalDateTime endTime;
 
     @OneToMany(mappedBy = "personaConnection")
-    private Set<GameReportEntity> gameReports;
+    private Set<GameConnectionEntity> gameConnections;
 
 }

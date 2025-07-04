@@ -1,8 +1,9 @@
 package com.ea.services;
 
+import com.ea.entities.core.GameConnectionEntity;
+import com.ea.entities.core.GameEntity;
 import com.ea.entities.discord.ChannelSubscriptionEntity;
-import com.ea.entities.game.GameEntity;
-import com.ea.entities.game.GameReportEntity;
+import com.ea.entities.stats.MohhGameReportEntity;
 import com.ea.enums.MapMoHH;
 import com.ea.enums.SubscriptionType;
 import lombok.RequiredArgsConstructor;
@@ -67,7 +68,7 @@ public class ScoreboardService {
             String gameModeId = baseContext.getVariable("gameModeId").toString();
             if (gameModeId.equals("8")) {
                 // Deathmatch: chunk all reports into groups of 16
-                List<List<GameReportEntity>> chunks = chunkList(gameInfo.dmReports, 16);
+                List<List<MohhGameReportEntity>> chunks = chunkList(gameInfo.dmReports, 16);
                 for (int i = 0; i < chunks.size(); i++) {
                     Context context = cloneContext(baseContext);
                     context.setVariable("reports", chunks.get(i));
@@ -85,8 +86,8 @@ public class ScoreboardService {
                 }
             } else {
                 // Team: chunk axis and allies separately, then pair up
-                List<List<GameReportEntity>> axisChunks = chunkList(gameInfo.axisReports, 16);
-                List<List<GameReportEntity>> alliesChunks = chunkList(gameInfo.alliesReports, 16);
+                List<List<MohhGameReportEntity>> axisChunks = chunkList(gameInfo.axisReports, 16);
+                List<List<MohhGameReportEntity>> alliesChunks = chunkList(gameInfo.alliesReports, 16);
                 int maxChunks = Math.max(axisChunks.size(), alliesChunks.size());
                 for (int i = 0; i < maxChunks; i++) {
                     Context context = cloneContext(baseContext);
@@ -188,16 +189,19 @@ public class ScoreboardService {
         context.setVariable("gameStartTime", game.getStartTime().format(DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm:ss")));
         context.setVariable("gameDuration", Duration.between(game.getStartTime(), game.getEndTime()).toMinutes());
 
-        Set<GameReportEntity> reports = game.getGameReports();
-        Map<String, GameReportEntity> aggregatedReports = new HashMap<>();
-        for (GameReportEntity report : reports) {
-            if (report.getPersonaConnection().isHost()) {
+        Set<MohhGameReportEntity> reports = game.getGameConnections().stream()
+                .map(GameConnectionEntity::getMohhGameReport)
+                .filter(Objects::nonNull)
+                .collect(Collectors.toSet());
+        Map<String, MohhGameReportEntity> aggregatedReports = new HashMap<>();
+        for (MohhGameReportEntity report : reports) {
+            if (report.getGameConnection().getPersonaConnection().isHost()) {
                 continue;
             }
-            String personaConnectionId = report.getPersonaConnection().getPersona().getPers();
+            String personaConnectionId = report.getGameConnection().getPersonaConnection().getPersona().getPers();
             if (aggregatedReports.containsKey(personaConnectionId)) {
-                GameReportEntity existingReport = aggregatedReports.get(personaConnectionId);
-                GameReportEntity aggregatedReport = getAggregatedReport(report, existingReport);
+                MohhGameReportEntity existingReport = aggregatedReports.get(personaConnectionId);
+                MohhGameReportEntity aggregatedReport = getAggregatedReport(report, existingReport);
                 aggregatedReports.put(personaConnectionId, aggregatedReport);
             } else {
                 aggregatedReports.put(personaConnectionId, report);
@@ -213,7 +217,7 @@ public class ScoreboardService {
 
         if (gameModeId.equals("8")) {
             // Deathmatch
-            List<GameReportEntity> sortedReports = aggregatedReports.values().stream()
+            List<MohhGameReportEntity> sortedReports = aggregatedReports.values().stream()
                     .filter(report -> report.getKill() > 0 || report.getDeath() > 0)
                     .sorted((report1, report2) -> {
                         int score1 = report1.getKill() - report1.getDeath();
@@ -221,19 +225,19 @@ public class ScoreboardService {
                         return Integer.compare(score2, score1);
                     })
                     .peek(report -> {
-                        String persona = report.getPersonaConnection().getPersona().getPers().replaceAll("\"", "");
-                        report.getPersonaConnection().getPersona().setPers(persona);
+                        String persona = report.getGameConnection().getPersonaConnection().getPersona().getPers().replaceAll("\"", "");
+                        report.getGameConnection().getPersonaConnection().getPersona().setPers(persona);
                     })
                     .toList();
             result.dmReports = sortedReports;
             result.dmWinner = sortedReports.stream()
                     .filter(report -> report.getWin() > 0)
                     .findFirst()
-                    .map(report -> report.getPersonaConnection().getPersona().getPers())
+                    .map(report -> report.getGameConnection().getPersonaConnection().getPersona().getPers())
                     .orElse(null);
         } else {
             // Team
-            List<GameReportEntity> sortedAxisReports = aggregatedReports.values().stream()
+            List<MohhGameReportEntity> sortedAxisReports = aggregatedReports.values().stream()
                     .filter(report -> report.getKill() > 0 || report.getDeath() > 0)
                     .filter(report -> report.getAxis() > 0 || (report.getAllies() == 0 && isMostlyAxis(report)))
                     .sorted((report1, report2) -> {
@@ -242,12 +246,12 @@ public class ScoreboardService {
                         return Integer.compare(score2, score1);
                     })
                     .peek(report -> {
-                        String persona = report.getPersonaConnection().getPersona().getPers().replaceAll("\"", "");
-                        report.getPersonaConnection().getPersona().setPers(persona);
+                        String persona = report.getGameConnection().getPersonaConnection().getPersona().getPers().replaceAll("\"", "");
+                        report.getGameConnection().getPersonaConnection().getPersona().setPers(persona);
                     })
                     .toList();
 
-            List<GameReportEntity> sortedAlliesReports = aggregatedReports.values().stream()
+            List<MohhGameReportEntity> sortedAlliesReports = aggregatedReports.values().stream()
                     .filter(report -> report.getKill() > 0 || report.getDeath() > 0)
                     .filter(report -> report.getAllies() > 0 || (report.getAxis() == 0 && !isMostlyAxis(report)))
                     .sorted((report1, report2) -> {
@@ -256,17 +260,17 @@ public class ScoreboardService {
                         return Integer.compare(score2, score1);
                     })
                     .peek(report -> {
-                        String persona = report.getPersonaConnection().getPersona().getPers().replaceAll("\"", "");
-                        report.getPersonaConnection().getPersona().setPers(persona);
+                        String persona = report.getGameConnection().getPersonaConnection().getPersona().getPers().replaceAll("\"", "");
+                        report.getGameConnection().getPersonaConnection().getPersona().setPers(persona);
                     })
                     .toList();
 
             result.axisReports = sortedAxisReports;
             result.alliesReports = sortedAlliesReports;
-            result.axisTotalKills = sortedAxisReports.stream().mapToInt(GameReportEntity::getKill).sum();
-            result.axisTotalDeaths = sortedAxisReports.stream().mapToInt(GameReportEntity::getDeath).sum();
-            result.alliesTotalKills = sortedAlliesReports.stream().mapToInt(GameReportEntity::getKill).sum();
-            result.alliesTotalDeaths = sortedAlliesReports.stream().mapToInt(GameReportEntity::getDeath).sum();
+            result.axisTotalKills = sortedAxisReports.stream().mapToInt(MohhGameReportEntity::getKill).sum();
+            result.axisTotalDeaths = sortedAxisReports.stream().mapToInt(MohhGameReportEntity::getDeath).sum();
+            result.alliesTotalKills = sortedAlliesReports.stream().mapToInt(MohhGameReportEntity::getKill).sum();
+            result.alliesTotalDeaths = sortedAlliesReports.stream().mapToInt(MohhGameReportEntity::getDeath).sum();
             result.teamWinner = sortedAxisReports.stream()
                     .filter(report -> report.getWin() > 0)
                     .findFirst()
@@ -280,7 +284,7 @@ public class ScoreboardService {
         return result;
     }
 
-    private boolean isMostlyAxis(GameReportEntity report) {
+    private boolean isMostlyAxis(MohhGameReportEntity report) {
         int axisShots = report.getLugerShot() + report.getMp40Shot() + report.getMp44Shot() +
                 report.getKarShot() + report.getGewrShot() + report.getPanzShot();
         int alliesShots = report.getColtShot() + report.getTomShot() + report.getBarShot() +
@@ -288,8 +292,8 @@ public class ScoreboardService {
         return axisShots > alliesShots;
     }
 
-    private GameReportEntity getAggregatedReport(GameReportEntity report, GameReportEntity existingReport) {
-        GameReportEntity aggregatedReport = new GameReportEntity();
+    private MohhGameReportEntity getAggregatedReport(MohhGameReportEntity report, MohhGameReportEntity existingReport) {
+        MohhGameReportEntity aggregatedReport = new MohhGameReportEntity();
         aggregatedReport.setKill(existingReport.getKill() + report.getKill());
         aggregatedReport.setDeath(existingReport.getDeath() + report.getDeath());
         aggregatedReport.setHead(existingReport.getHead() + report.getHead());
@@ -301,8 +305,8 @@ public class ScoreboardService {
         aggregatedReport.setAllies(existingReport.getAllies() + report.getAllies());
         aggregatedReport.setAxis(existingReport.getAxis() + report.getAxis());
         aggregatedReport.setPlayTime(existingReport.getPlayTime() + report.getPlayTime());
-        aggregatedReport.setGame(existingReport.getGame());
-        aggregatedReport.setPersonaConnection(existingReport.getPersonaConnection());
+        aggregatedReport.setGameConnectionId(existingReport.getGameConnectionId());
+        aggregatedReport.setGameConnection(existingReport.getGameConnection());
         return aggregatedReport;
     }
 
@@ -356,10 +360,10 @@ public class ScoreboardService {
     // Helper class to return all info needed for chunking
     private static class GameInfoResult {
         boolean proceed;
-        List<GameReportEntity> dmReports;
+        List<MohhGameReportEntity> dmReports;
         String dmWinner;
-        List<GameReportEntity> axisReports;
-        List<GameReportEntity> alliesReports;
+        List<MohhGameReportEntity> axisReports;
+        List<MohhGameReportEntity> alliesReports;
         int axisTotalKills;
         int axisTotalDeaths;
         int alliesTotalKills;

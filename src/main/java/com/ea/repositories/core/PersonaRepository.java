@@ -1,6 +1,6 @@
-package com.ea.repositories.game;
+package com.ea.repositories.core;
 
-import com.ea.entities.game.PersonaEntity;
+import com.ea.entities.core.PersonaEntity;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 

@@ -1,17 +1,17 @@
 package com.ea.services;
 
-import com.ea.model.Event;
-import com.ea.entities.game.GameEntity;
-import com.ea.entities.game.GameReportEntity;
-import com.ea.entities.game.PersonaConnectionEntity;
+import com.ea.entities.core.GameConnectionEntity;
+import com.ea.entities.core.GameEntity;
+import com.ea.entities.core.PersonaConnectionEntity;
+import com.ea.entities.discord.ChannelSubscriptionEntity;
 import com.ea.entities.discord.ParamEntity;
 import com.ea.enums.Params;
 import com.ea.enums.SubscriptionType;
-import com.ea.repositories.game.GameReportRepository;
-import com.ea.repositories.game.GameRepository;
-import com.ea.repositories.game.PersonaConnectionRepository;
+import com.ea.model.Event;
+import com.ea.repositories.core.GameConnectionRepository;
+import com.ea.repositories.core.GameRepository;
+import com.ea.repositories.core.PersonaConnectionRepository;
 import com.ea.repositories.discord.ParamRepository;
-import com.ea.entities.discord.ChannelSubscriptionEntity;
 import com.ea.utils.GameVersUtils;
 import jakarta.annotation.PostConstruct;
 import lombok.RequiredArgsConstructor;
@@ -35,25 +35,20 @@ import java.util.stream.Collectors;
 public class PollingService {
     public static final String DATETIME_FORMAT = "yyyy-MM-dd HH:mm:ss.SSSSSS";
     private static final List<String> vers = List.of("PSP/MOHGPS071", "PSP/MOH07");
-
-    @Value("${dns.name}")
-    private String dnsName;
-
-    private boolean enablePlayerEventsProcess = false;
-
-    @Value("${services.events-enabled}")
-    private boolean eventsEnabled;
-
-    @Value("${services.bot-activity-enabled}")
-    private boolean botActivityEnabled;
-
     private final ParamRepository paramRepository;
     private final GameRepository gameRepository;
-    private final GameReportRepository gameReportRepository;
+    private final GameConnectionRepository gameConnectionRepository;
     private final PersonaConnectionRepository personaConnectionRepository;
     private final ScoreboardService scoreboardService;
     private final DiscordBotService discordBotService;
     private final ChannelSubscriptionService channelSubscriptionService;
+    @Value("${dns.name}")
+    private String dnsName;
+    private boolean enablePlayerEventsProcess = false;
+    @Value("${services.events-enabled}")
+    private boolean eventsEnabled;
+    @Value("${services.bot-activity-enabled}")
+    private boolean botActivityEnabled;
 
     @PostConstruct
     @Scheduled(fixedDelay = 10000)
@@ -65,7 +60,7 @@ public class PollingService {
         ParamEntity lastKnownIpEntity = paramRepository.findById(Params.LAST_KNOWN_IP.name()).orElse(null);
         String currentIp = lastKnownIpEntity != null ? lastKnownIpEntity.getParamValue() : "UNKNOWN";
         int currentPlayersOnline = personaConnectionRepository.countPlayersOnline();
-        int currentPlayersInGame = gameReportRepository.countPlayersInGame();
+        int currentPlayersInGame = gameConnectionRepository.countPlayersInGame();
         String activity = "🌐 " + currentPlayersOnline + " 🎮 " + currentPlayersInGame + " 💻 " + currentIp;
         discordBotService.updateActivity(activity);
     }
@@ -77,12 +72,12 @@ public class PollingService {
             return;
         }
         ParamEntity lastFetchTimeEntity = paramRepository.findById(Params.LAST_FETCH_TIME.name()).orElse(null);
-        if(lastFetchTimeEntity != null) {
+        if (lastFetchTimeEntity != null) {
             LocalDateTime lastFetchTime = LocalDateTime.parse(lastFetchTimeEntity.getParamValue(), DateTimeFormatter.ofPattern(DATETIME_FORMAT));
             LocalDateTime currentFetchTime = LocalDateTime.now();
 
             processScoreboard(lastFetchTime, currentFetchTime);
-            if(enablePlayerEventsProcess) {
+            if (enablePlayerEventsProcess) {
                 processPlayerEvents(lastFetchTime, currentFetchTime);
             } else {
                 enablePlayerEventsProcess = true;
@@ -106,18 +101,18 @@ public class PollingService {
         List<PersonaConnectionEntity> personaLogins = personaConnectionRepository.findPersonaLogins(lastFetchTime, currentFetchTime);
         List<PersonaConnectionEntity> personaLogouts = personaConnectionRepository.findPersonaLogouts(lastFetchTime, currentFetchTime);
 
-        List<GameReportEntity> rawGameJoining = gameReportRepository.findPlayerJoins(lastFetchTime, currentFetchTime);
-        List<GameReportEntity> gameLeaving = gameReportRepository.findPlayerLeaves(lastFetchTime, currentFetchTime);
+        List<GameConnectionEntity> rawGameJoining = gameConnectionRepository.findPlayerJoins(lastFetchTime, currentFetchTime);
+        List<GameConnectionEntity> gameLeaving = gameConnectionRepository.findPlayerLeaves(lastFetchTime, currentFetchTime);
 
-        // Filter out map rotation joins: if there is a previous GameReportEntity for the same personaConnection
+        // Filter out map rotation joins: if there is a previous GameConnectionEntity for the same personaConnection
         // where previousReport.endTime == previousReport.game.endTime and previousReport.endTime == this.startTime, skip
-        List<GameReportEntity> gameJoining = new ArrayList<>();
-        for (GameReportEntity join : rawGameJoining) {
+        List<GameConnectionEntity> gameJoining = new ArrayList<>();
+        for (GameConnectionEntity join : rawGameJoining) {
             PersonaConnectionEntity personaConn = join.getPersonaConnection();
             LocalDateTime joinStart = join.getStartTime();
             // Find previous report for this personaConnection that ends exactly at this join's start time
-            GameReportEntity prev = gameReportRepository
-                .findFirstByPersonaConnectionAndEndTimeOrderByEndTimeDesc(personaConn, joinStart);
+            GameConnectionEntity prev = gameConnectionRepository
+                    .findFirstByPersonaConnectionAndEndTimeOrderByEndTimeDesc(personaConn, joinStart);
             if (prev != null && prev.getEndTime() != null && prev.getGame() != null && prev.getEndTime().equals(prev.getGame().getEndTime())) {
                 // This is a map rotation, skip
                 continue;
@@ -145,7 +140,7 @@ public class PollingService {
                     "🔴 **" + persona + "** disconnected from `" + version + "`"
             ));
         }
-        for (GameReportEntity join : gameJoining) {
+        for (GameConnectionEntity join : gameJoining) {
             String persona = join.getPersonaConnection().getPersona().getPers().replace("\"", "");
             String gameName = join.getGame().getName().replace("\"", "");
             events.add(new Event(
@@ -154,7 +149,7 @@ public class PollingService {
                     "➡️ **" + persona + "** joined game `" + gameName + "`"
             ));
         }
-        for (GameReportEntity leave : gameLeaving) {
+        for (GameConnectionEntity leave : gameLeaving) {
             String persona = leave.getPersonaConnection().getPersona().getPers().replace("\"", "");
             String gameName = leave.getGame().getName().replace("\"", "");
             events.add(new Event(
@@ -183,7 +178,7 @@ public class PollingService {
         if (lastKnownIpEntity != null) {
             String lastKnownIp = lastKnownIpEntity.getParamValue();
             String currentIp = InetAddress.getByName(dnsName).getHostAddress();
-            if(!lastKnownIp.equals(currentIp)) {
+            if (!lastKnownIp.equals(currentIp)) {
                 log.info("NEW DNS ADDRESS: {}", currentIp);
                 lastKnownIpEntity.setParamValue(currentIp);
                 paramRepository.save(lastKnownIpEntity);
