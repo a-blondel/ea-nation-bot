@@ -18,6 +18,8 @@ import java.time.format.DateTimeFormatter;
 import java.util.*;
 import java.util.stream.Collectors;
 
+import static com.ea.services.PollingService.MOH07_OR_MOH08;
+
 @Slf4j
 @Service
 @RequiredArgsConstructor
@@ -48,7 +50,7 @@ public class MapService {
 
             // Get all connections with their personas
             List<PersonaConnectionEntity> connections = personaConnectionRepository
-                    .findByStartTimeGreaterThan(startTime);
+                    .findByStartTimeGreaterThanAndVersIn(startTime, MOH07_OR_MOH08);
 
             // Group by persona and get the latest connection for each (hosts are excluded)
             Map<Long, PersonaConnectionEntity> latestConnections = connections.stream()

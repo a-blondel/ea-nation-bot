@@ -14,16 +14,16 @@ public interface GameConnectionRepository extends JpaRepository<GameConnectionEn
 
 
     // Count players in game (not hosts, not ended)
-    @Query("SELECT COUNT(gc) FROM GameConnectionEntity gc WHERE gc.isHost = false AND gc.endTime IS NULL")
-    int countPlayersInGame();
+    @Query("SELECT COUNT(gc) FROM GameConnectionEntity gc WHERE gc.personaConnection.isHost = false AND gc.endTime IS NULL AND gc.personaConnection.vers IN :vers")
+    int countPlayersInGame(List<String> vers);
 
     // Find player joins (not hosts, not map rotation)
-    @Query("SELECT gc FROM GameConnectionEntity gc WHERE gc.isHost = false AND gc.startTime BETWEEN :start AND :end AND (gc.endTime IS NULL OR gc.endTime <> gc.game.endTime) ORDER BY gc.startTime")
-    List<GameConnectionEntity> findPlayerJoins(LocalDateTime start, LocalDateTime end);
+    @Query("SELECT gc FROM GameConnectionEntity gc WHERE gc.personaConnection.isHost = false AND gc.startTime BETWEEN :start AND :end AND (gc.endTime IS NULL OR gc.endTime <> gc.game.endTime) AND gc.personaConnection.vers IN :vers ORDER BY gc.startTime")
+    List<GameConnectionEntity> findPlayerJoins(LocalDateTime start, LocalDateTime end, List<String> vers);
 
     // Find player leaves (not hosts, not map rotation)
-    @Query("SELECT gc FROM GameConnectionEntity gc WHERE gc.isHost = false AND gc.endTime BETWEEN :start AND :end AND (gc.game.endTime IS NULL OR gc.endTime <> gc.game.endTime) ORDER BY gc.endTime")
-    List<GameConnectionEntity> findPlayerLeaves(LocalDateTime start, LocalDateTime end);
+    @Query("SELECT gc FROM GameConnectionEntity gc WHERE gc.personaConnection.isHost = false AND gc.endTime BETWEEN :start AND :end AND (gc.game.endTime IS NULL OR gc.endTime <> gc.game.endTime) AND gc.personaConnection.vers IN :vers ORDER BY gc.endTime")
+    List<GameConnectionEntity> findPlayerLeaves(LocalDateTime start, LocalDateTime end, List<String> vers);
 
     // Find a personaConnection ending at a specific time (for map rotation detection)
     GameConnectionEntity findFirstByPersonaConnectionAndEndTimeOrderByEndTimeDesc(PersonaConnectionEntity personaConnection, LocalDateTime endTime);

@@ -12,7 +12,6 @@ import com.ea.repositories.core.GameConnectionRepository;
 import com.ea.repositories.core.GameRepository;
 import com.ea.repositories.core.PersonaConnectionRepository;
 import com.ea.repositories.discord.ParamRepository;
-import com.ea.utils.GameVersUtils;
 import jakarta.annotation.PostConstruct;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -34,7 +33,12 @@ import java.util.stream.Collectors;
 @Service
 public class PollingService {
     public static final String DATETIME_FORMAT = "yyyy-MM-dd HH:mm:ss.SSSSSS";
-    private static final List<String> vers = List.of("PSP/MOHGPS071", "PSP/MOH07");
+    public static final String PSP_MOH_07_UHS = "PSP/MOHGPS071";
+    public static final String PSP_MOH_07 = "PSP/MOH07";
+    public static final String PSP_MOH_08 = "PSP/MOH08";
+    public static final String WII_MOH_08 = "WII/MOH08";
+    public static final List<String> MOH07_OR_MOH08 = List.of(PSP_MOH_07, PSP_MOH_08, WII_MOH_08);
+    private static final List<String> MOH07_OR_UHS = List.of(PSP_MOH_07_UHS, PSP_MOH_07);
     private final ParamRepository paramRepository;
     private final GameRepository gameRepository;
     private final GameConnectionRepository gameConnectionRepository;
@@ -59,8 +63,8 @@ public class PollingService {
         }
         ParamEntity lastKnownIpEntity = paramRepository.findById(Params.LAST_KNOWN_IP.name()).orElse(null);
         String currentIp = lastKnownIpEntity != null ? lastKnownIpEntity.getParamValue() : "UNKNOWN";
-        int currentPlayersOnline = personaConnectionRepository.countPlayersOnline();
-        int currentPlayersInGame = gameConnectionRepository.countPlayersInGame();
+        int currentPlayersOnline = personaConnectionRepository.countPlayersOnline(MOH07_OR_MOH08);
+        int currentPlayersInGame = gameConnectionRepository.countPlayersInGame(MOH07_OR_MOH08);
         String activity = "🌐 " + currentPlayersOnline + " 🎮 " + currentPlayersInGame + " 💻 " + currentIp;
         discordBotService.updateActivity(activity);
     }
@@ -89,7 +93,7 @@ public class PollingService {
     }
 
     private void processScoreboard(LocalDateTime lastFetchTime, LocalDateTime currentFetchTime) {
-        List<GameEntity> games = gameRepository.findByVersInAndEndTimeBetweenOrderByEndTimeAsc(vers, lastFetchTime, currentFetchTime);
+        List<GameEntity> games = gameRepository.findByVersInAndEndTimeBetweenOrderByEndTimeAsc(MOH07_OR_UHS, lastFetchTime, currentFetchTime);
 
         for (GameEntity game : games) {
             scoreboardService.generateScoreboard(game);
@@ -98,11 +102,11 @@ public class PollingService {
 
     private void processPlayerEvents(LocalDateTime lastFetchTime, LocalDateTime currentFetchTime) {
 
-        List<PersonaConnectionEntity> personaLogins = personaConnectionRepository.findPersonaLogins(lastFetchTime, currentFetchTime);
-        List<PersonaConnectionEntity> personaLogouts = personaConnectionRepository.findPersonaLogouts(lastFetchTime, currentFetchTime);
+        List<PersonaConnectionEntity> personaLogins = personaConnectionRepository.findPersonaLogins(lastFetchTime, currentFetchTime, MOH07_OR_MOH08);
+        List<PersonaConnectionEntity> personaLogouts = personaConnectionRepository.findPersonaLogouts(lastFetchTime, currentFetchTime, MOH07_OR_MOH08);
 
-        List<GameConnectionEntity> rawGameJoining = gameConnectionRepository.findPlayerJoins(lastFetchTime, currentFetchTime);
-        List<GameConnectionEntity> gameLeaving = gameConnectionRepository.findPlayerLeaves(lastFetchTime, currentFetchTime);
+        List<GameConnectionEntity> rawGameJoining = gameConnectionRepository.findPlayerJoins(lastFetchTime, currentFetchTime, MOH07_OR_MOH08);
+        List<GameConnectionEntity> gameLeaving = gameConnectionRepository.findPlayerLeaves(lastFetchTime, currentFetchTime, MOH07_OR_MOH08);
 
         // Filter out map rotation joins: if there is a previous GameConnectionEntity for the same personaConnection
         // where previousReport.endTime == previousReport.game.endTime and previousReport.endTime == this.startTime, skip
@@ -124,20 +128,18 @@ public class PollingService {
 
         for (PersonaConnectionEntity login : personaLogins) {
             String persona = login.getPersona().getPers().replace("\"", "");
-            String version = GameVersUtils.getGameNameByVersion(login.getVers());
             events.add(new Event(
                     login.getId(),
                     login.getStartTime(),
-                    "🟢 **" + persona + "** connected to `" + version + "`"
+                    "🟢 **" + persona + "** connected to `" + login.getVers() + "`"
             ));
         }
         for (PersonaConnectionEntity logout : personaLogouts) {
             String persona = logout.getPersona().getPers().replace("\"", "");
-            String version = GameVersUtils.getGameNameByVersion(logout.getVers());
             events.add(new Event(
                     logout.getId(),
                     logout.getEndTime(),
-                    "🔴 **" + persona + "** disconnected from `" + version + "`"
+                    "🔴 **" + persona + "** disconnected from `" + logout.getVers() + "`"
             ));
         }
         for (GameConnectionEntity join : gameJoining) {
