@@ -28,7 +28,7 @@ RUN apt-get update && \
     rm -rf /var/lib/apt/lists/* /tmp/* /usr/local/bin/chromedriver-linux64
 
 # Copy the application jar
-COPY --from=build /usr/local/app/target/mohh-discord-bot-*.jar /mohh-discord-bot.jar
+COPY --from=build /usr/local/app/target/ea-nation-bot-*.jar /ea-nation-bot.jar
 
 # Set entrypoint
-ENTRYPOINT ["java", "-jar", "/mohh-discord-bot.jar"]
+ENTRYPOINT ["java", "-jar", "/ea-nation-bot.jar"]
