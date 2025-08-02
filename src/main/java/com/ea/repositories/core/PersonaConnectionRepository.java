@@ -13,17 +13,17 @@ public interface PersonaConnectionRepository extends JpaRepository<PersonaConnec
 
 
     // Count online players (not hosts, not ended)
-    @Query("SELECT COUNT(pc) FROM PersonaConnectionEntity pc WHERE pc.isHost = false AND pc.endTime IS NULL AND pc.vers IN :vers")
-    int countPlayersOnline(List<String> vers);
+    @Query("SELECT COUNT(pc) FROM PersonaConnectionEntity pc WHERE pc.isHost = false AND pc.endTime IS NULL")
+    int countPlayersOnline();
 
     // Find persona logins (not hosts)
-    @Query("SELECT pc FROM PersonaConnectionEntity pc WHERE pc.isHost = false AND pc.startTime BETWEEN :start AND :end AND pc.vers IN :vers ORDER BY pc.startTime")
-    List<PersonaConnectionEntity> findPersonaLogins(LocalDateTime start, LocalDateTime end, List<String> vers);
+    @Query("SELECT pc FROM PersonaConnectionEntity pc WHERE pc.isHost = false AND pc.startTime BETWEEN :start AND :end ORDER BY pc.startTime")
+    List<PersonaConnectionEntity> findPersonaLogins(LocalDateTime start, LocalDateTime end);
 
     // Find persona logouts (not hosts)
-    @Query("SELECT pc FROM PersonaConnectionEntity pc WHERE pc.isHost = false AND pc.endTime BETWEEN :start AND :end AND pc.vers IN :vers ORDER BY pc.endTime")
-    List<PersonaConnectionEntity> findPersonaLogouts(LocalDateTime start, LocalDateTime end, List<String> vers);
+    @Query("SELECT pc FROM PersonaConnectionEntity pc WHERE pc.isHost = false AND pc.endTime BETWEEN :start AND :end ORDER BY pc.endTime")
+    List<PersonaConnectionEntity> findPersonaLogouts(LocalDateTime start, LocalDateTime end);
 
-    List<PersonaConnectionEntity> findByStartTimeGreaterThanAndVersIn(LocalDateTime start, List<String> vers);
+    List<PersonaConnectionEntity> findByStartTimeGreaterThan(LocalDateTime start);
 
 }

@@ -45,7 +45,7 @@ If you don't want to use the `dev` profile, you have to define the following env
 - `DB_USERNAME` : the username of the database
 - `DB_PASSWORD` : the password of the database
 
-But this requires to run a [MoHH Master Server](https://github.com/a-blondel/mohh-master-server) database locally.
+But this requires to run an [EA Nation Server](https://github.com/a-blondel/ea-nation-server) database locally.
 
 The default scoreboard image is generated in the `report` directory. You can change the path using the `REPORTS_PATH`
 environment variable.  
