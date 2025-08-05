@@ -7,7 +7,7 @@
     - Current in game player count
     - Current DNS IP Address
 - Scoreboards
-    - Sends an image of the scoreboard every time a game ends (if the game had at least 2 players and 1 kill/death)
+    - Sends an image of the scoreboard every time a game ends
 - Events
     - Sends a message when players connect/disconnect and join/leave games
 - Playerbase activity map
@@ -16,8 +16,11 @@
 <img src="doc/bot-activity.png" alt="bot activity" /><br/>
 *Discord bot activity*
 
-<img src="doc/scoreboard.png" alt="scoreboard" /><br/>
-*Scoreboard*
+<img src="doc/mohh-scoreboard.png" alt="MoHH scoreboard" /><br/>
+*MoHH Scoreboard*
+
+<img src="doc/nhl-scoreboard.png" alt="NHL scoreboard" /><br/>
+*NHL Scoreboard*
 
 <img src="doc/heatmap.png" alt="heatmap" /><br/>
 *Heatmap*

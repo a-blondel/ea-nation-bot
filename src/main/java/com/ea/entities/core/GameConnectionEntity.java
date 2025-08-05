@@ -1,6 +1,7 @@
 package com.ea.entities.core;
 
 import com.ea.entities.stats.MohhGameReportEntity;
+import com.ea.entities.stats.NhlGameReportEntity;
 import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -38,4 +39,7 @@ public class GameConnectionEntity {
 
     @OneToOne(mappedBy = "gameConnection", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
     private MohhGameReportEntity mohhGameReport;
+
+    @OneToOne(mappedBy = "gameConnection", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
+    private NhlGameReportEntity nhlGameReport;
 }
