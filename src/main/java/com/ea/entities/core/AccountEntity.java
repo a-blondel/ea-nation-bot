@@ -33,27 +33,11 @@ public class AccountEntity {
 
     private String gend;
 
-    private String spam;
-
-    private int tos;
-
-    private String tick;
-
-    private String gamecode;
-
-    private String vers;
-
-    private String sku;
-
-    private String slus;
-
-    private String sdkvers;
-
-    private String builddate;
-
     private LocalDateTime createdOn;
 
     private LocalDateTime updatedOn;
+
+    private boolean isBanned;
 
     @OneToMany(mappedBy = "account", fetch = FetchType.EAGER)
     @OrderBy("id DESC")
