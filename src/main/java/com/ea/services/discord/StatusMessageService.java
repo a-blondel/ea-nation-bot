@@ -3,69 +3,41 @@ package com.ea.services.discord;
 import com.ea.entities.discord.StatusMessageEntity;
 import com.ea.enums.GameGenre;
 import com.ea.repositories.discord.DiscordStatusMessageRepository;
-import jakarta.annotation.PreDestroy;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import net.dv8tion.jda.api.JDA;
 import net.dv8tion.jda.api.entities.channel.concrete.TextChannel;
-import net.dv8tion.jda.api.utils.FileUpload;
-import org.openqa.selenium.By;
-import org.openqa.selenium.Dimension;
-import org.openqa.selenium.OutputType;
-import org.openqa.selenium.WebElement;
-import org.openqa.selenium.chrome.ChromeDriver;
-import org.openqa.selenium.chrome.ChromeOptions;
-import org.openqa.selenium.support.ui.WebDriverWait;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.io.File;
-import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.StandardCopyOption;
-import java.time.Duration;
 import java.time.Instant;
 import java.time.LocalDateTime;
 import java.util.List;
-import java.util.Map;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.CountDownLatch;
 
+/**
+ * Service responsible for managing Discord status messages.
+ * Generates and updates status messages with current game information for each subscribed genre.
+ */
 @Slf4j
 @Service
 @RequiredArgsConstructor
 public class StatusMessageService {
+
     private final DiscordStatusMessageRepository statusMessageRepository;
+    private final StatusMessageContentService statusMessageContentService;
     private final JDA jda;
-    private final Object driverLock = new Object();
+
     @Value("${services.bot-activity-enabled}")
     private boolean botActivityEnabled;
-    @Value("${dns.name}")
-    private String dnsName;
-    // Singleton ChromeDriver instance
-    private ChromeDriver singletonDriver;
 
-    private static ChromeOptions getChromeOptions() {
-        ChromeOptions options = new ChromeOptions();
-        options.addArguments(
-                "--headless=new",
-                "--disable-extensions",
-                "--no-sandbox",
-                "--disable-dev-shm-usage",
-                "--disable-gpu",
-                "--window-size=1240,1200",
-                "--hide-scrollbars",
-                "--memory-pressure-off",
-                "--max_old_space_size=512",
-                "--disable-background-timer-throttling",
-                "--disable-backgrounding-occluded-windows",
-                "--disable-renderer-backgrounding"
-        );
-        return options;
-    }
-
+    /**
+     * Scheduled method to update all status messages every 30 seconds.
+     * Processes all game genres and updates their respective status messages.
+     */
     @Scheduled(fixedDelay = 30000)
     public void updateStatusMessages() {
         if (!botActivityEnabled) {
@@ -73,210 +45,117 @@ public class StatusMessageService {
             return;
         }
 
-        // Only update FPS genre status messages for now (as mentioned in requirements)
-        List<StatusMessageEntity> entries = statusMessageRepository.findAll().stream()
-                .filter(entry -> entry.getGameGenre() == GameGenre.FPS)
-                .toList();
-
-        if (entries.isEmpty()) return;
-        File screenshot;
-        try {
-            screenshot = takeScreenshot();
-        } catch (Exception e) {
-            log.error("Failed to take status screenshot", e);
+        List<StatusMessageEntity> entries = statusMessageRepository.findAll();
+        if (entries.isEmpty()) {
+            log.debug("No status message subscriptions found");
             return;
         }
-        long unixTimestamp = Instant.now().getEpochSecond();
-        String content = "Updated <t:" + unixTimestamp + ":R>";
 
-        // Use CountDownLatch to wait for all async operations
+        // Use CountDownLatch to wait for all async Discord operations to complete
         CountDownLatch latch = new CountDownLatch(entries.size());
         List<StatusMessageEntity> updatedEntries = new CopyOnWriteArrayList<>();
 
         for (StatusMessageEntity entry : entries) {
-            TextChannel channel = jda.getTextChannelById(entry.getChannelId());
-            if (channel == null) {
-                latch.countDown();
-                continue;
-            }
-            try {
-                if (entry.getMessageId() == null) {
-                    channel.sendMessage(content)
-                            .addFiles(FileUpload.fromData(screenshot, "status.png"))
-                            .queue(msg -> {
-                                entry.setMessageId(msg.getId());
-                                entry.setUpdatedAt(LocalDateTime.now());
-                                updatedEntries.add(entry);
-                                latch.countDown();
-                            }, error -> {
-                                log.error("Failed to send status message for channel {}", entry.getChannelId(), error);
-                                latch.countDown();
-                            });
-                } else {
-                    channel.editMessageById(entry.getMessageId(), content)
-                            .setFiles(FileUpload.fromData(screenshot, "status.png"))
-                            .queue(success -> {
-                                entry.setUpdatedAt(LocalDateTime.now());
-                                updatedEntries.add(entry);
-                                latch.countDown();
-                            }, error -> {
-                                log.error("Failed to edit status message for channel {}", entry.getChannelId(), error);
-                                latch.countDown();
-                            });
-                }
-            } catch (Exception e) {
-                log.error("Failed to send or edit status message for channel {}", entry.getChannelId(), e);
-                latch.countDown();
-            }
+            updateStatusMessageForEntry(entry, updatedEntries, latch);
         }
 
         try {
+            // Wait for all Discord operations to complete
             latch.await();
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
             log.error("Interrupted while waiting for Discord message operations to complete", e);
         }
+
+        // Save all updated entries after all Discord operations are done
         if (!updatedEntries.isEmpty()) {
             statusMessageRepository.saveAll(updatedEntries);
-        }
-
-        // Clean up the screenshot file
-        if (screenshot.exists()) {
-            boolean deleted = screenshot.delete();
-            if (!deleted) {
-                log.warn("Failed to delete temporary screenshot file: {}", screenshot.getAbsolutePath());
-            }
+            log.debug("Saved {} updated status message entries", updatedEntries.size());
         }
     }
 
-    private File takeScreenshot() throws IOException {
-        String statusUrl = "http://" + dnsName + "/gamelist.html";
-        ChromeDriver driver = getOrCreateDriver();
-        synchronized (driverLock) {
-            // Always reset window size to default before each screenshot
-            int width = 1240;
-            int height = 1200;
-            driver.manage().window().setSize(new Dimension(width, height));
+    /**
+     * Update status message for a specific entry.
+     */
+    private void updateStatusMessageForEntry(StatusMessageEntity entry,
+                                             List<StatusMessageEntity> updatedEntries,
+                                             CountDownLatch latch) {
+        TextChannel channel = jda.getTextChannelById(entry.getChannelId());
+        if (channel == null) {
+            log.warn("Channel {} not found for status message", entry.getChannelId());
+            latch.countDown();
+            return;
+        }
 
-            driver.get(statusUrl);
+        try {
+            // Generate content for the specific game genre
+            String content = generateStatusMessageContent(entry.getGameGenre());
 
-            // Force dark mode for prefers-color-scheme
-            try {
-                driver.executeCdpCommand(
-                        "Emulation.setEmulatedMedia",
-                        Map.of("features", List.of(
-                                Map.of("name", "prefers-color-scheme", "value", "dark")
-                        ))
-                );
-            } catch (Exception e) {
-                log.warn("Could not set prefers-color-scheme to dark: {}", e.getMessage());
-            }
-
-            // Also set theme attribute and localStorage for frontend JS
-            try {
-                driver.executeScript(
-                        "document.documentElement.setAttribute('data-theme', 'dark'); localStorage.setItem('theme', 'dark');"
-                );
-            } catch (Exception e) {
-                log.warn("Could not set data-theme or localStorage for dark mode: {}", e.getMessage());
-            }
-
-            // Wait for the loading div to disappear (data loaded)
-            try {
-                new WebDriverWait(driver, Duration.ofSeconds(10))
-                        .until(d -> {
-                            WebElement loading = d.findElement(By.id("loading"));
-                            return !loading.isDisplayed() || "none".equals(loading.getCssValue("display"));
+            if (entry.getMessageId() == null) {
+                // Send new message
+                channel.sendMessage(content)
+                        .queue(msg -> {
+                            entry.setMessageId(msg.getId());
+                            entry.setUpdatedAt(LocalDateTime.now());
+                            updatedEntries.add(entry);
+                            latch.countDown();
+                            log.debug("Sent new status message for genre {} in channel {}",
+                                    entry.getGameGenre(), entry.getChannelId());
+                        }, error -> {
+                            log.error("Failed to send status message for channel {} and genre {}",
+                                    entry.getChannelId(), entry.getGameGenre(), error);
+                            latch.countDown();
                         });
-            } catch (Exception e) {
-                log.warn("Timeout waiting for loading to disappear, taking screenshot anyway");
+            } else {
+                // Edit existing message
+                channel.editMessageById(entry.getMessageId(), content)
+                        .queue(success -> {
+                            entry.setUpdatedAt(LocalDateTime.now());
+                            updatedEntries.add(entry);
+                            latch.countDown();
+                            log.debug("Updated status message for genre {} in channel {}",
+                                    entry.getGameGenre(), entry.getChannelId());
+                        }, error -> {
+                            log.error("Failed to edit status message for channel {} and genre {}",
+                                    entry.getChannelId(), entry.getGameGenre(), error);
+                            latch.countDown();
+                        });
             }
-
-            // Remove the <header> element
-            try {
-                driver.executeScript(
-                        "var header = document.querySelector('header'); if(header) header.remove();"
-                );
-            } catch (Exception e) {
-                log.warn("Could not remove header element before screenshot");
-            }
-
-            // Measure actual content height and set window size accordingly
-            try {
-                // Scroll to bottom first to ensure all content is rendered
-                driver.executeScript("window.scrollTo(0, document.body.scrollHeight);");
-                Thread.sleep(200);
-
-                // Get the actual content height using multiple methods
-                Object result = driver.executeScript(
-                        "var body = document.body, html = document.documentElement;" +
-                                "return Math.max(" +
-                                "body.scrollHeight, body.offsetHeight, body.clientHeight," +
-                                "html.scrollHeight, html.offsetHeight, html.clientHeight" +
-                                ");"
-                );
-                if (result instanceof Long) {
-                    height = ((Long) result).intValue();
-                } else if (result instanceof Number) {
-                    height = ((Number) result).intValue();
-                }
-                // Add more padding to ensure we don't cut anything
-                height += 150;
-                if (height < 400) height = 400;
-                if (height > 5000) height = 5000;
-
-                driver.manage().window().setSize(new Dimension(width, height));
-                driver.executeScript(
-                        "document.body.style.overflow='hidden'; document.documentElement.style.overflow='hidden';"
-                );
-                // Small delay to let the browser render at new size
-                Thread.sleep(500);
-            } catch (Exception e) {
-                log.warn("Could not set dynamic window size, using default: {}", e.getMessage());
-            }
-
-            // Use regular screenshot
-            File temp = File.createTempFile("status", ".png");
-            try {
-                File screenshot = driver.getScreenshotAs(OutputType.FILE);
-                Files.copy(screenshot.toPath(), temp.toPath(), StandardCopyOption.REPLACE_EXISTING);
-                return temp;
-            } catch (Exception e) {
-                log.error("Failed to take screenshot: {}", e.getMessage());
-                // Clean up temp file if screenshot failed
-                if (temp.exists()) {
-                    boolean deleted = temp.delete();
-                    if (!deleted) {
-                        log.warn("Failed to delete temporary file: {}", temp.getAbsolutePath());
-                    }
-                }
-                throw new IOException("Screenshot failed", e);
-            }
+        } catch (Exception e) {
+            log.error("Failed to process status message for channel {} and genre {}",
+                    entry.getChannelId(), entry.getGameGenre(), e);
+            latch.countDown();
         }
     }
 
-    private ChromeDriver getOrCreateDriver() {
-        synchronized (driverLock) {
-            if (singletonDriver == null) {
-                singletonDriver = new ChromeDriver(getChromeOptions());
-            }
-            return singletonDriver;
+    /**
+     * Generate the content for a status message based on the game genre.
+     */
+    private String generateStatusMessageContent(GameGenre gameGenre) {
+        try {
+            String content = statusMessageContentService.generateStatusContent(gameGenre);
+
+            // Add timestamp footer
+            long unixTimestamp = Instant.now().getEpochSecond();
+            content += "---\n*Last updated <t:" + unixTimestamp + ":R>*";
+
+            return content;
+        } catch (Exception e) {
+            log.error("Failed to generate status content for genre {}", gameGenre, e);
+            return "❌ **Error generating status for " + gameGenre.name() + "**\n\n" +
+                    "Unable to retrieve current game information. Please try again later.\n\n" +
+                    "*Last updated <t:" + Instant.now().getEpochSecond() + ":R>*";
         }
     }
 
-    @PreDestroy
-    public void shutdownDriver() {
-        synchronized (driverLock) {
-            if (singletonDriver != null) {
-                try {
-                    singletonDriver.quit();
-                } catch (Exception e) {
-                    log.warn("Error while closing singleton ChromeDriver: {}", e.getMessage());
-                }
-            }
-        }
-    }
-
+    /**
+     * Create or update a status message subscription for a guild and game genre.
+     *
+     * @param guildId   the Discord guild ID
+     * @param channelId the Discord channel ID where messages should be sent
+     * @param gameGenre the game genre to monitor
+     * @return the created or updated StatusMessageEntity
+     */
     @Transactional
     public StatusMessageEntity upsertStatusMessage(String guildId, String channelId, GameGenre gameGenre) {
         StatusMessageEntity entity = statusMessageRepository.findByGuildIdAndGameGenre(guildId, gameGenre)
@@ -285,11 +164,27 @@ public class StatusMessageService {
         entity.setChannelId(channelId);
         entity.setGameGenre(gameGenre);
         entity.setUpdatedAt(LocalDateTime.now());
-        return statusMessageRepository.save(entity);
+
+        // Clear message ID if channel changed to force new message creation
+        if (!channelId.equals(entity.getChannelId())) {
+            entity.setMessageId(null);
+        }
+
+        StatusMessageEntity saved = statusMessageRepository.save(entity);
+        log.info("Upserted status message subscription for guild {} genre {} in channel {}",
+                guildId, gameGenre, channelId);
+        return saved;
     }
 
+    /**
+     * Delete a status message subscription for a guild and game genre.
+     *
+     * @param guildId   the Discord guild ID
+     * @param gameGenre the game genre to stop monitoring
+     */
     @Transactional
     public void deleteStatusMessage(String guildId, GameGenre gameGenre) {
         statusMessageRepository.deleteByGuildIdAndGameGenre(guildId, gameGenre);
+        log.info("Deleted status message subscription for guild {} genre {}", guildId, gameGenre);
     }
 }

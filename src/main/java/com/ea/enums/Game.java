@@ -41,10 +41,9 @@ public enum Game {
     NHL_07("NHL 07", "PSP/NHL07", GameGenre.HOCKEY),
 
     // FPS genre
-    MEDAL_OF_HONOR_HEROES_GPS("Medal of Honor: Heroes", "PSP/MOHGPS071", GameGenre.FPS),
-    MEDAL_OF_HONOR_HEROES("Medal of Honor: Heroes", "PSP/MOH07", GameGenre.FPS),
-    MEDAL_OF_HONOR_HEROES_2("Medal of Honor: Heroes 2", "PSP/MOH08", GameGenre.FPS),
-    MEDAL_OF_HONOR_HEROES_2_WII("Medal of Honor: Heroes 2 (Wii)", "WII/MOH08", GameGenre.FPS),
+    MEDAL_OF_HONOR_HEROES("Medal of Honor: Heroes", "PSP/MOH07", "PSP/MOHGPS071", GameGenre.FPS),
+//    MEDAL_OF_HONOR_HEROES_2("Medal of Honor: Heroes 2", "PSP/MOH08", GameGenre.FPS),
+//    MEDAL_OF_HONOR_HEROES_2_WII("Medal of Honor: Heroes 2 (Wii)", "WII/MOH08", GameGenre.FPS),
 
     // GOLF genre
     TIGER_WOODS_PGA_TOUR_07("Tiger Woods PGA Tour 07", "PSP/TW07", GameGenre.GOLF),
@@ -52,24 +51,50 @@ public enum Game {
     TIGER_WOODS_PGA_TOUR_10("Tiger Woods PGA Tour 10", "PSP/TEST10", GameGenre.GOLF);
 
     private final String name;
-    private final String vers;
+    private final String vers; // Client VERS code
+    private final String serverVers; // Server VERS code (null if same as client)
     private final GameGenre gameGenre;
 
+    // Constructor for games where client and server VERS are the same
     Game(String name, String vers, GameGenre gameGenre) {
         this.name = name;
         this.vers = vers;
+        this.serverVers = null;
+        this.gameGenre = gameGenre;
+    }
+
+    // Constructor for games where client and server VERS are different
+    Game(String name, String vers, String serverVers, GameGenre gameGenre) {
+        this.name = name;
+        this.vers = vers;
+        this.serverVers = serverVers;
         this.gameGenre = gameGenre;
     }
 
     /**
-     * Find a game by its VERS code.
+     * Find a game by its client VERS code.
      *
-     * @param vers the VERS code to search for
+     * @param vers the client VERS code to search for
      * @return the corresponding Game, or null if not found
      */
     public static Game findByVers(String vers) {
         for (Game game : values()) {
             if (game.vers.equals(vers)) {
+                return game;
+            }
+        }
+        return null;
+    }
+
+    /**
+     * Find a game by its server VERS code.
+     *
+     * @param serverVers the server VERS code to search for
+     * @return the corresponding Game, or null if not found
+     */
+    public static Game findByServerVers(String serverVers) {
+        for (Game game : values()) {
+            if (game.getEffectiveServerVers().equals(serverVers)) {
                 return game;
             }
         }
@@ -88,4 +113,40 @@ public enum Game {
                 .toArray(Game[]::new);
     }
 
+    /**
+     * Get all client VERS codes for a specific genre.
+     *
+     * @param genre the genre to get VERS codes for
+     * @return array of client VERS codes
+     */
+    public static String[] getClientVersCodesByGenre(GameGenre genre) {
+        return java.util.Arrays.stream(values())
+                .filter(game -> game.gameGenre == genre)
+                .map(Game::getVers)
+                .toArray(String[]::new);
+    }
+
+    /**
+     * Get all server VERS codes for a specific genre.
+     *
+     * @param genre the genre to get server VERS codes for
+     * @return array of server VERS codes
+     */
+    public static String[] getServerVersCodesByGenre(GameGenre genre) {
+        return java.util.Arrays.stream(values())
+                .filter(game -> game.gameGenre == genre)
+                .map(Game::getEffectiveServerVers)
+                .distinct()
+                .toArray(String[]::new);
+    }
+
+    /**
+     * Get the effective server VERS code.
+     * Returns serverVers if available, otherwise falls back to vers.
+     *
+     * @return the VERS code used by the server
+     */
+    public String getEffectiveServerVers() {
+        return serverVers != null ? serverVers : vers;
+    }
 }

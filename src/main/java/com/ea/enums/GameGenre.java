@@ -8,14 +8,14 @@ import lombok.Getter;
  */
 @Getter
 public enum GameGenre {
-    FOOTBALL("football"),
-    FIGHTING("fighting"),
-    AMERICAN_FOOTBALL("american_football"),
-    BASKETBALL("basketball"),
-    RACING("racing"),
-    HOCKEY("hockey"),
-    FPS("fps"),
-    GOLF("golf");
+    FOOTBALL("FOOTBALL"),
+    FIGHTING("FIGHTING"),
+    AMERICAN_FOOTBALL("AMERICAN_FOOTBALL"),
+    BASKETBALL("BASKETBALL"),
+    RACING("RACING"),
+    HOCKEY("HOCKEY"),
+    FPS("FPS"),
+    GOLF("GOLF");
 
     private final String value;
 
