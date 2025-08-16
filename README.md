@@ -10,8 +10,6 @@
     - Sends an image of the scoreboard every time a game ends
 - Events
     - Sends a message when players connect/disconnect and join/leave games
-- Playerbase activity map
-    - Periodically send a worldwide heatmap of player connections
 
 <img src="doc/bot-activity.png" alt="bot activity" /><br/>
 *Discord bot activity*
@@ -21,9 +19,6 @@
 
 <img src="doc/nhl-scoreboard.png" alt="NHL scoreboard" /><br/>
 *NHL Scoreboard*
-
-<img src="doc/heatmap.png" alt="heatmap" /><br/>
-*Heatmap*
 
 ## Run
 

@@ -1,7 +1,5 @@
 package com.ea.listeners;
 
-import com.ea.entities.discord.ChannelSubscriptionEntity;
-import com.ea.entities.discord.ParamEntity;
 import com.ea.enums.GameGenre;
 import com.ea.enums.SubscriptionType;
 import com.ea.repositories.discord.ParamRepository;
@@ -15,10 +13,6 @@ import net.dv8tion.jda.api.JDA;
 import net.dv8tion.jda.api.events.interaction.command.SlashCommandInteractionEvent;
 import net.dv8tion.jda.api.hooks.ListenerAdapter;
 import org.springframework.stereotype.Component;
-
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Optional;
 
 import static net.dv8tion.jda.api.Permission.MANAGE_SERVER;
 
@@ -43,9 +37,6 @@ public class ChannelSubscriptionListener extends ListenerAdapter {
         switch (command) {
             case "subscribe" -> handleSubscription(event, true);
             case "unsubscribe" -> handleSubscription(event, false);
-            case "alert" -> handleAlert(event);
-            case "dns" -> handleDns(event);
-            case "stats" -> handleStats(event);
             default -> {
             }
         }
@@ -86,41 +77,5 @@ public class ChannelSubscriptionListener extends ListenerAdapter {
             }
             event.reply("Unsubscribed this server from " + subscriptionType.getValue() + " updates in " + gameGenre.getValue() + " genre.").setEphemeral(true).queue();
         }
-    }
-
-    private void handleAlert(SlashCommandInteractionEvent event) {
-        String message = event.getOption("message").getAsString();
-        Optional<ParamEntity> roleParam = paramRepository.findById("ALERT_ROLE_ID");
-        if (roleParam.isEmpty()) {
-            event.reply("Alert role is not configured. Please set ALERT_ROLE_ID in the database.").setEphemeral(true).queue();
-            return;
-        }
-        String alertRoleId = roleParam.get().getParamValue();
-        if (event.getMember() == null || event.getMember().getRoles().stream().noneMatch(r -> r.getId().equals(alertRoleId))) {
-            event.reply("You are not authorized to use this command.").setEphemeral(true).queue();
-            return;
-        }
-
-        // Send alerts to all subscribers across all categories since alerts are global
-        List<ChannelSubscriptionEntity> allAlertSubs = new ArrayList<>();
-        for (GameGenre genre : GameGenre.values()) {
-            allAlertSubs.addAll(subscriptionService.getAllByTypeAndGenre(SubscriptionType.ALERTS, genre));
-        }
-        List<String> channelIds = allAlertSubs.stream()
-                .map(ChannelSubscriptionEntity::getChannelId)
-                .distinct()
-                .toList();
-        discordBotService.sendMessage(channelIds, message);
-        event.reply("Alert sent to all subscribers.").setEphemeral(true).queue();
-    }
-
-    private void handleDns(SlashCommandInteractionEvent event) {
-        Optional<ParamEntity> ipParam = paramRepository.findById("LAST_KNOWN_IP");
-        String ip = ipParam.map(ParamEntity::getParamValue).orElse("UNKNOWN");
-        event.reply("`" + ip + "`").queue();
-    }
-
-    private void handleStats(SlashCommandInteractionEvent event) {
-        event.reply("Not yet available 😉").setEphemeral(true).queue();
     }
 }

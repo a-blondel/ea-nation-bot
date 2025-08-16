@@ -46,68 +46,45 @@ public class DiscordBotService {
                 jda.updateCommands()
                         .addCommands(
                                 Commands.slash("subscribe", "Subscribe this channel to updates for a specific game genre")
-                                        .addOptions(
-                                                new OptionData(OptionType.STRING, "type", "Type of updates to subscribe to", true)
-                                                        .addChoices(
-                                                                new Command.Choice("Game scoreboards (end of round)", SubscriptionType.SCOREBOARD.getValue()),
-                                                                new Command.Choice("Player connection/game logs", SubscriptionType.LOGS.getValue()),
-                                                                new Command.Choice("Alerts: DNS IP update, maintenance", SubscriptionType.ALERTS.getValue()),
-                                                                new Command.Choice("Periodic activity map", SubscriptionType.ACTIVITY_MAP.getValue()),
-                                                                new Command.Choice("Server status (games, players). Should be used on its own channel", SubscriptionType.STATUS.getValue())
-                                                        ),
-                                                new OptionData(OptionType.STRING, "genre", "Game genre to subscribe to", true)
-                                                        .addChoices(
-                                                                new Command.Choice("Football (FIFA, UEFA)", GameGenre.FOOTBALL.getValue()),
-                                                                new Command.Choice("Fighting (Fight Night)", GameGenre.FIGHTING.getValue()),
-                                                                new Command.Choice("American Football (Madden, NCAA)", GameGenre.AMERICAN_FOOTBALL.getValue()),
-                                                                new Command.Choice("Basketball (NBA Live)", GameGenre.BASKETBALL.getValue()),
-                                                                new Command.Choice("Racing (Need for Speed)", GameGenre.RACING.getValue()),
-                                                                new Command.Choice("Hockey (NHL)", GameGenre.HOCKEY.getValue()),
-                                                                new Command.Choice("FPS (Medal of Honor)", GameGenre.FPS.getValue()),
-                                                                new Command.Choice("Golf (Tiger Woods PGA)", GameGenre.GOLF.getValue())
-                                                        )
-                                        ),
+                                        .addOptions(getSubscriptionTypeOptions(), getGameGenreOptions()),
                                 Commands.slash("unsubscribe", "Unsubscribe this server from updates for a specific game genre")
-                                        .addOptions(
-                                                new OptionData(OptionType.STRING, "type", "Type of updates to unsubscribe from", true)
-                                                        .addChoices(
-                                                                new Command.Choice("Game scoreboards (end of round)", SubscriptionType.SCOREBOARD.getValue()),
-                                                                new Command.Choice("Player connection/game logs", SubscriptionType.LOGS.getValue()),
-                                                                new Command.Choice("Alerts: DNS IP update, maintenance", SubscriptionType.ALERTS.getValue()),
-                                                                new Command.Choice("Periodic activity map", SubscriptionType.ACTIVITY_MAP.getValue()),
-                                                                new Command.Choice("Server status (games, players)", SubscriptionType.STATUS.getValue())
-                                                        ),
-                                                new OptionData(OptionType.STRING, "genre", "Game genre to unsubscribe from", true)
-                                                        .addChoices(
-                                                                new Command.Choice("Football (FIFA, UEFA)", GameGenre.FOOTBALL.getValue()),
-                                                                new Command.Choice("Fighting (Fight Night)", GameGenre.FIGHTING.getValue()),
-                                                                new Command.Choice("American Football (Madden, NCAA)", GameGenre.AMERICAN_FOOTBALL.getValue()),
-                                                                new Command.Choice("Basketball (NBA Live)", GameGenre.BASKETBALL.getValue()),
-                                                                new Command.Choice("Racing (Need for Speed)", GameGenre.RACING.getValue()),
-                                                                new Command.Choice("Hockey (NHL)", GameGenre.HOCKEY.getValue()),
-                                                                new Command.Choice("FPS (Medal of Honor)", GameGenre.FPS.getValue()),
-                                                                new Command.Choice("Golf (Tiger Woods PGA)", GameGenre.GOLF.getValue())
-                                                        )
-                                        ),
-                                Commands.slash("alert", "Send an alert to all 'alerts' subscribers (restricted to alert role)")
-                                        .addOptions(
-                                                new OptionData(OptionType.STRING, "message", "The alert message to broadcast", true)
-                                        ),
-                                Commands.slash("dns", "Show the current DNS IP address"),
-                                Commands.slash("stats", "Show player stats")
-                                        .addOptions(
-                                                new OptionData(OptionType.STRING, "game", "Game name", true)
-                                                        .addChoices(
-                                                                new Command.Choice("psp/mohh", "PSP/MOH07"),
-                                                                new Command.Choice("psp/mohh2", "PSP/MOH08"),
-                                                                new Command.Choice("wii/mohh2", "WII/MOH08")
-                                                        ),
-                                                new OptionData(OptionType.STRING, "name", "Player name", true)
-                                        )
+                                        .addOptions(getUnsubscribeTypeOptions(), getGameGenreOptions())
                         )
                         .queue();
             }
         });
+    }
+
+    private OptionData getSubscriptionTypeOptions() {
+        return new OptionData(OptionType.STRING, "type", "Type of updates to subscribe to", true)
+                .addChoices(
+                        new Command.Choice("Server status (games, players). Should be used on its own channel", SubscriptionType.STATUS.getValue()),
+                        new Command.Choice("Game logs (connections)", SubscriptionType.LOGS.getValue()),
+                        new Command.Choice("Game scoreboards (end of round)", SubscriptionType.SCOREBOARD.getValue())
+                );
+    }
+
+    private OptionData getUnsubscribeTypeOptions() {
+        return new OptionData(OptionType.STRING, "type", "Type of updates to unsubscribe from", true)
+                .addChoices(
+                        new Command.Choice("Server status (games, players)", SubscriptionType.STATUS.getValue()),
+                        new Command.Choice("Game logs (connections)", SubscriptionType.LOGS.getValue()),
+                        new Command.Choice("Game scoreboards (end of round)", SubscriptionType.SCOREBOARD.getValue())
+                );
+    }
+
+    private OptionData getGameGenreOptions() {
+        return new OptionData(OptionType.STRING, "genre", "Game genre to subscribe to", true)
+                .addChoices(
+                        new Command.Choice("Football (FIFA, UEFA)", GameGenre.FOOTBALL.getValue()),
+                        new Command.Choice("Fighting (Fight Night)", GameGenre.FIGHTING.getValue()),
+                        new Command.Choice("American Football (Madden, NCAA)", GameGenre.AMERICAN_FOOTBALL.getValue()),
+                        new Command.Choice("Basketball (NBA Live)", GameGenre.BASKETBALL.getValue()),
+                        new Command.Choice("Racing (Need for Speed)", GameGenre.RACING.getValue()),
+                        new Command.Choice("Hockey (NHL)", GameGenre.HOCKEY.getValue()),
+                        new Command.Choice("FPS (Medal of Honor)", GameGenre.FPS.getValue()),
+                        new Command.Choice("Golf (Tiger Woods PGA)", GameGenre.GOLF.getValue())
+                );
     }
 
     public void sendMessage(List<String> channelIds, String message) {

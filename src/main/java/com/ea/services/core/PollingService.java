@@ -33,7 +33,6 @@ import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
-import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 @Slf4j
@@ -41,11 +40,9 @@ import java.util.stream.Stream;
 @Service
 public class PollingService {
     public static final String DATETIME_FORMAT = "yyyy-MM-dd HH:mm:ss.SSSSSS";
-    public static final String PSP_MOH_07_UHS = "PSP/MOHGPS071";
     public static final String PSP_MOH_07 = "PSP/MOH07";
     public static final String PSP_MOH_08 = "PSP/MOH08";
     public static final String WII_MOH_08 = "WII/MOH08";
-    public static final String PSP_NHL_07 = "PSP/NHL07";
     public static final List<String> MOH07_OR_MOH08 = List.of(PSP_MOH_07, PSP_MOH_08, WII_MOH_08);
     private final ParamRepository paramRepository;
     private final GameRepository gameRepository;
@@ -113,7 +110,8 @@ public class PollingService {
                         case FPS -> mohhScoreboardService.generateScoreboard(game);
                         case HOCKEY -> nhlScoreboardService.generateScoreboard(game);
                         // Other categories can be added here when their scoreboard services are implemented
-                        default -> log.debug("No scoreboard service available for gameGenre: {}", gameGenre);
+                        default -> {
+                        }
                     }
                 }
             }
@@ -257,17 +255,6 @@ public class PollingService {
                 log.info("NEW DNS ADDRESS: {}", currentIp);
                 lastKnownIpEntity.setParamValue(currentIp);
                 paramRepository.save(lastKnownIpEntity);
-
-                // Send alerts to all subscribers across all categories since IP change affects all games
-                List<ChannelSubscriptionEntity> allAlertSubs = new ArrayList<>();
-                for (GameGenre genre : GameGenre.values()) {
-                    allAlertSubs.addAll(channelSubscriptionService.getAllByTypeAndGenre(SubscriptionType.ALERTS, genre));
-                }
-                List<String> channelIds = allAlertSubs.stream()
-                        .map(ChannelSubscriptionEntity::getChannelId)
-                        .distinct()
-                        .collect(Collectors.toList());
-                discordBotService.sendMessage(channelIds, String.format("⚠️ New DNS address: `%s`", currentIp));
             }
         }
     }
