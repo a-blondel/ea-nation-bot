@@ -1,9 +1,15 @@
 package com.ea.services.map;
 
 import com.ea.entities.core.PersonaConnectionEntity;
+import com.ea.entities.discord.ChannelSubscriptionEntity;
+import com.ea.enums.GameGenre;
+import com.ea.enums.SubscriptionType;
 import com.ea.model.GeoLocation;
 import com.ea.model.LocationInfo;
 import com.ea.repositories.core.PersonaConnectionRepository;
+import com.ea.services.discord.ChannelSubscriptionService;
+import com.ea.services.discord.DiscordBotService;
+import com.ea.utils.GameVersUtils;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
@@ -25,6 +31,8 @@ public class MapService {
     private final GeoIPService geoIPService;
     private final PersonaConnectionRepository personaConnectionRepository;
     private final WorldMapGenerator worldMapGenerator;
+    private final ChannelSubscriptionService channelSubscriptionService;
+    private final DiscordBotService discordBotService;
 
     @Value("${reports.path}")
     private String reportsPath;
@@ -43,12 +51,35 @@ public class MapService {
         }
 
         try {
-            // Get IPs from the last 7 days
             LocalDateTime startTime = LocalDateTime.now().minusDays(7);
 
-            // Get all connections with their personas
+            // Generate maps for each game genre
+            for (GameGenre genre : GameGenre.values()) {
+                generateMapsForGenre(genre, startTime);
+            }
+
+        } catch (Exception e) {
+            log.error("Failed to generate weekly maps", e);
+        }
+    }
+
+    private void generateMapsForGenre(GameGenre genre, LocalDateTime startTime) {
+        try {
+            // Get VERS codes for this genre
+            List<String> versForGenre = GameVersUtils.getVersForGenre(genre);
+            if (versForGenre.isEmpty()) {
+                log.debug("No VERS codes found for genre: {}", genre);
+                return;
+            }
+
+            // Get connections filtered by game genre
             List<PersonaConnectionEntity> connections = personaConnectionRepository
-                    .findByStartTimeGreaterThan(startTime);
+                    .findByStartTimeGreaterThanAndVersIn(startTime, versForGenre);
+
+            if (connections.isEmpty()) {
+                log.debug("No connections found for genre: {}", genre);
+                return;
+            }
 
             // Group by persona and get the latest connection for each (hosts are excluded)
             Map<Long, PersonaConnectionEntity> latestConnections = connections.stream()
@@ -74,22 +105,44 @@ public class MapService {
                             )
                     ));
 
-            log.info("Found {} unique IPs from personas", uniqueIpConnections.size());
+            log.info("Found {} unique IPs for genre {}", uniqueIpConnections.size(), genre);
+
+            List<File> generatedFiles = new ArrayList<>();
 
             if (mapTypes.equals("ALL") || mapTypes.equals("HEATMAP")) {
-                generateHeatmap(uniqueIpConnections);
+                File heatMapFile = generateHeatmapForGenre(uniqueIpConnections, genre);
+                if (heatMapFile != null) {
+                    generatedFiles.add(heatMapFile);
+                }
             }
 
             if (mapTypes.equals("ALL") || mapTypes.equals("LOCATION")) {
-                generateLocationMap(uniqueIpConnections);
+                File locationMapFile = generateLocationMapForGenre(uniqueIpConnections, genre);
+                if (locationMapFile != null) {
+                    generatedFiles.add(locationMapFile);
+                }
+            }
+
+            // Send generated maps to subscribers of this genre
+            if (!generatedFiles.isEmpty()) {
+                List<ChannelSubscriptionEntity> activityMapSubs = channelSubscriptionService
+                        .getAllByTypeAndGenre(SubscriptionType.ACTIVITY_MAP, genre);
+                List<String> channelIds = activityMapSubs.stream()
+                        .map(ChannelSubscriptionEntity::getChannelId)
+                        .toList();
+
+                if (!channelIds.isEmpty()) {
+                    String message = String.format("📊 Weekly activity map for %s games", genre.getValue());
+                    discordBotService.sendImages(channelIds, generatedFiles, message);
+                }
             }
 
         } catch (Exception e) {
-            log.error("Failed to generate weekly maps", e);
+            log.error("Failed to generate maps for genre: {}", genre, e);
         }
     }
 
-    private void generateHeatmap(Map<String, PersonaConnectionEntity> uniqueIpConnections) throws IOException {
+    private File generateHeatmapForGenre(Map<String, PersonaConnectionEntity> uniqueIpConnections, GameGenre genre) throws IOException {
         Map<String, Integer> countryHits = uniqueIpConnections.values().stream()
                 .map(conn -> geoIPService.getCountry(cleanIpAddress(conn.getAddress())))
                 .filter(country -> !"UNKNOWN".equals(country))
@@ -98,19 +151,20 @@ public class MapService {
                         Collectors.collectingAndThen(Collectors.counting(), Long::intValue)
                 ));
 
-        log.info("Found hits for {} countries: {}", countryHits.size(),
+        log.info("Found hits for {} countries in genre {}: {}", countryHits.size(), genre,
                 countryHits.entrySet().stream()
                         .sorted(Map.Entry.<String, Integer>comparingByValue().reversed())
                         .map(e -> String.format("%s=%d", e.getKey(), e.getValue()))
                         .collect(Collectors.joining(", "))
         );
 
-        File heatMapFile = new File(reportsPath, "heat-map-" +
+        File heatMapFile = new File(reportsPath, "heat-map-" + genre.getValue() + "-" +
                 LocalDate.now().format(DateTimeFormatter.ISO_DATE) + ".png");
-        worldMapGenerator.generateHeatmap(countryHits, heatMapFile);
+        worldMapGenerator.generateHeatmap(countryHits, heatMapFile, genre);
+        return heatMapFile;
     }
 
-    private void generateLocationMap(Map<String, PersonaConnectionEntity> uniqueIpConnections) throws IOException {
+    private File generateLocationMapForGenre(Map<String, PersonaConnectionEntity> uniqueIpConnections, GameGenre genre) throws IOException {
         Map<String, LocationInfo> locationInfoMap = uniqueIpConnections.values().stream()
                 .collect(Collectors.toMap(
                         conn -> cleanIpAddress(conn.getAddress()),
@@ -125,9 +179,10 @@ public class MapService {
         // Remove null locations
         locationInfoMap.values().removeIf(Objects::isNull);
 
-        File locationMapFile = new File(reportsPath, "location-map-" +
+        File locationMapFile = new File(reportsPath, "location-map-" + genre.getValue() + "-" +
                 LocalDate.now().format(DateTimeFormatter.ISO_DATE) + ".png");
-        worldMapGenerator.generateLocationMap(locationInfoMap, locationMapFile);
+        worldMapGenerator.generateLocationMap(locationInfoMap, locationMapFile, genre);
+        return locationMapFile;
     }
 
     private String cleanIpAddress(String address) {

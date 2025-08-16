@@ -1,6 +1,7 @@
 package com.ea.services.discord;
 
 import com.ea.entities.discord.StatusMessageEntity;
+import com.ea.enums.GameGenre;
 import com.ea.repositories.discord.DiscordStatusMessageRepository;
 import jakarta.annotation.PreDestroy;
 import lombok.RequiredArgsConstructor;
@@ -71,7 +72,12 @@ public class StatusMessageService {
             log.debug("Bot activity updates are disabled");
             return;
         }
-        List<StatusMessageEntity> entries = statusMessageRepository.findAll();
+
+        // Only update FPS genre status messages for now (as mentioned in requirements)
+        List<StatusMessageEntity> entries = statusMessageRepository.findAll().stream()
+                .filter(entry -> entry.getGameGenre() == GameGenre.FPS)
+                .toList();
+
         if (entries.isEmpty()) return;
         File screenshot;
         try {
@@ -239,7 +245,10 @@ public class StatusMessageService {
                 log.error("Failed to take screenshot: {}", e.getMessage());
                 // Clean up temp file if screenshot failed
                 if (temp.exists()) {
-                    temp.delete();
+                    boolean deleted = temp.delete();
+                    if (!deleted) {
+                        log.warn("Failed to delete temporary file: {}", temp.getAbsolutePath());
+                    }
                 }
                 throw new IOException("Screenshot failed", e);
             }
@@ -268,17 +277,19 @@ public class StatusMessageService {
         }
     }
 
-    public void upsertStatusMessage(String guildId, String channelId) {
-        StatusMessageEntity entry = statusMessageRepository.findByGuildId(guildId)
-                .orElseGet(StatusMessageEntity::new);
-        entry.setGuildId(guildId);
-        entry.setChannelId(channelId);
-        entry.setUpdatedAt(LocalDateTime.now());
-        statusMessageRepository.save(entry);
+    @Transactional
+    public StatusMessageEntity upsertStatusMessage(String guildId, String channelId, GameGenre gameGenre) {
+        StatusMessageEntity entity = statusMessageRepository.findByGuildIdAndGameGenre(guildId, gameGenre)
+                .orElse(new StatusMessageEntity());
+        entity.setGuildId(guildId);
+        entity.setChannelId(channelId);
+        entity.setGameGenre(gameGenre);
+        entity.setUpdatedAt(LocalDateTime.now());
+        return statusMessageRepository.save(entity);
     }
 
     @Transactional
-    public void deleteStatusMessage(String guildId) {
-        statusMessageRepository.deleteByGuildId(guildId);
+    public void deleteStatusMessage(String guildId, GameGenre gameGenre) {
+        statusMessageRepository.deleteByGuildIdAndGameGenre(guildId, gameGenre);
     }
 }

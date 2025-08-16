@@ -1,5 +1,6 @@
 package com.ea.services.discord;
 
+import com.ea.enums.GameGenre;
 import com.ea.enums.SubscriptionType;
 import jakarta.annotation.PostConstruct;
 import lombok.RequiredArgsConstructor;
@@ -44,7 +45,7 @@ public class DiscordBotService {
             public void onReady(ReadyEvent event) {
                 jda.updateCommands()
                         .addCommands(
-                                Commands.slash("subscribe", "Subscribe this channel to updates. Types: scoreboard, logs, alerts, activity-map, status")
+                                Commands.slash("subscribe", "Subscribe this channel to updates for a specific game genre")
                                         .addOptions(
                                                 new OptionData(OptionType.STRING, "type", "Type of updates to subscribe to", true)
                                                         .addChoices(
@@ -53,9 +54,20 @@ public class DiscordBotService {
                                                                 new Command.Choice("Alerts: DNS IP update, maintenance", SubscriptionType.ALERTS.getValue()),
                                                                 new Command.Choice("Periodic activity map", SubscriptionType.ACTIVITY_MAP.getValue()),
                                                                 new Command.Choice("Server status (games, players). Should be used on its own channel", SubscriptionType.STATUS.getValue())
+                                                        ),
+                                                new OptionData(OptionType.STRING, "genre", "Game genre to subscribe to", true)
+                                                        .addChoices(
+                                                                new Command.Choice("Football (FIFA, UEFA)", GameGenre.FOOTBALL.getValue()),
+                                                                new Command.Choice("Fighting (Fight Night)", GameGenre.FIGHTING.getValue()),
+                                                                new Command.Choice("American Football (Madden, NCAA)", GameGenre.AMERICAN_FOOTBALL.getValue()),
+                                                                new Command.Choice("Basketball (NBA Live)", GameGenre.BASKETBALL.getValue()),
+                                                                new Command.Choice("Racing (Need for Speed)", GameGenre.RACING.getValue()),
+                                                                new Command.Choice("Hockey (NHL)", GameGenre.HOCKEY.getValue()),
+                                                                new Command.Choice("FPS (Medal of Honor)", GameGenre.FPS.getValue()),
+                                                                new Command.Choice("Golf (Tiger Woods PGA)", GameGenre.GOLF.getValue())
                                                         )
                                         ),
-                                Commands.slash("unsubscribe", "Unsubscribe this server from updates. Types: scoreboard, logs, alerts, activity-map, status")
+                                Commands.slash("unsubscribe", "Unsubscribe this server from updates for a specific game genre")
                                         .addOptions(
                                                 new OptionData(OptionType.STRING, "type", "Type of updates to unsubscribe from", true)
                                                         .addChoices(
@@ -64,6 +76,17 @@ public class DiscordBotService {
                                                                 new Command.Choice("Alerts: DNS IP update, maintenance", SubscriptionType.ALERTS.getValue()),
                                                                 new Command.Choice("Periodic activity map", SubscriptionType.ACTIVITY_MAP.getValue()),
                                                                 new Command.Choice("Server status (games, players)", SubscriptionType.STATUS.getValue())
+                                                        ),
+                                                new OptionData(OptionType.STRING, "genre", "Game genre to unsubscribe from", true)
+                                                        .addChoices(
+                                                                new Command.Choice("Football (FIFA, UEFA)", GameGenre.FOOTBALL.getValue()),
+                                                                new Command.Choice("Fighting (Fight Night)", GameGenre.FIGHTING.getValue()),
+                                                                new Command.Choice("American Football (Madden, NCAA)", GameGenre.AMERICAN_FOOTBALL.getValue()),
+                                                                new Command.Choice("Basketball (NBA Live)", GameGenre.BASKETBALL.getValue()),
+                                                                new Command.Choice("Racing (Need for Speed)", GameGenre.RACING.getValue()),
+                                                                new Command.Choice("Hockey (NHL)", GameGenre.HOCKEY.getValue()),
+                                                                new Command.Choice("FPS (Medal of Honor)", GameGenre.FPS.getValue()),
+                                                                new Command.Choice("Golf (Tiger Woods PGA)", GameGenre.GOLF.getValue())
                                                         )
                                         ),
                                 Commands.slash("alert", "Send an alert to all 'alerts' subscribers (restricted to alert role)")

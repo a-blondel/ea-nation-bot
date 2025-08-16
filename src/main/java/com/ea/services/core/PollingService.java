@@ -5,6 +5,8 @@ import com.ea.entities.core.GameEntity;
 import com.ea.entities.core.PersonaConnectionEntity;
 import com.ea.entities.discord.ChannelSubscriptionEntity;
 import com.ea.entities.discord.ParamEntity;
+import com.ea.enums.Game;
+import com.ea.enums.GameGenre;
 import com.ea.enums.Params;
 import com.ea.enums.SubscriptionType;
 import com.ea.model.Event;
@@ -16,6 +18,7 @@ import com.ea.services.discord.ChannelSubscriptionService;
 import com.ea.services.discord.DiscordBotService;
 import com.ea.services.stats.MohhScoreboardService;
 import com.ea.services.stats.NhlScoreboardService;
+import com.ea.utils.GameVersUtils;
 import jakarta.annotation.PostConstruct;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -99,16 +102,21 @@ public class PollingService {
     }
 
     private void processScoreboard(LocalDateTime lastFetchTime, LocalDateTime currentFetchTime) {
-        // Process Mohh scoreboards
-        List<GameEntity> games = gameRepository.findByVersInAndEndTimeBetweenOrderByEndTimeAsc(List.of(PSP_MOH_07_UHS), lastFetchTime, currentFetchTime);
-        for (GameEntity game : games) {
-            mohhScoreboardService.generateScoreboard(game);
-        }
-
-        // Process Nhl scoreboards
-        games = gameRepository.findByVersInAndEndTimeBetweenOrderByEndTimeAsc(List.of(PSP_NHL_07), lastFetchTime, currentFetchTime);
-        for (GameEntity game : games) {
-            nhlScoreboardService.generateScoreboard(game);
+        // Process scoreboards for all game categories
+        for (GameGenre gameGenre : GameGenre.values()) {
+            List<String> versForGenre = GameVersUtils.getVersForGenre(gameGenre);
+            if (!versForGenre.isEmpty()) {
+                List<GameEntity> games = gameRepository.findByVersInAndEndTimeBetweenOrderByEndTimeAsc(versForGenre, lastFetchTime, currentFetchTime);
+                for (GameEntity game : games) {
+                    // Determine which scoreboard service to use based on gameGenre
+                    switch (gameGenre) {
+                        case FPS -> mohhScoreboardService.generateScoreboard(game);
+                        case HOCKEY -> nhlScoreboardService.generateScoreboard(game);
+                        // Other categories can be added here when their scoreboard services are implemented
+                        default -> log.debug("No scoreboard service available for gameGenre: {}", gameGenre);
+                    }
+                }
+            }
         }
     }
 
@@ -142,51 +150,97 @@ public class PollingService {
         List<GameConnectionEntity> allGameJoining = Stream.concat(mohhGameJoining.stream(), notMohhGameJoining.stream()).toList();
         List<GameConnectionEntity> allGameLeaving = Stream.concat(mohhGameLeaving.stream(), notMohhGameLeaving.stream()).toList();
 
+        // Group events by game genre for targeted distribution
         List<Event> events = new ArrayList<>();
+
+        // Process logins - group by genre
         for (PersonaConnectionEntity login : personaLogins) {
+            GameGenre genre = GameVersUtils.getGenreForVers(login.getVers());
             String persona = login.getPersona().getPers().replace("\"", "");
-            events.add(new Event(
+            String gameName = GameVersUtils.getNamesForGenre(genre != null ? genre : GameGenre.FPS)
+                    .stream()
+                    .filter(name -> Game.findByVers(login.getVers()) != null && Game.findByVers(login.getVers()).getName().equals(name))
+                    .findFirst()
+                    .orElse(login.getVers());
+
+            Event event = new Event(
                     login.getId(),
                     login.getStartTime(),
-                    "🟢 `[" + login.getVers() + "]` **" + persona + "** connected"
-            ));
+                    "🟢 `[" + gameName + "]` **" + persona + "** connected",
+                    genre
+            );
+            events.add(event);
         }
+
+        // Process logouts - group by genre
         for (PersonaConnectionEntity logout : personaLogouts) {
+            GameGenre genre = GameVersUtils.getGenreForVers(logout.getVers());
             String persona = logout.getPersona().getPers().replace("\"", "");
-            events.add(new Event(
+            String gameName = GameVersUtils.getNamesForGenre(genre != null ? genre : GameGenre.FPS)
+                    .stream()
+                    .filter(name -> Game.findByVers(logout.getVers()) != null && Game.findByVers(logout.getVers()).getName().equals(name))
+                    .findFirst()
+                    .orElse(logout.getVers());
+
+            Event event = new Event(
                     logout.getId(),
                     logout.getEndTime(),
-                    "🔴 `[" + logout.getVers() + "]` **" + persona + "** disconnected"
-            ));
+                    "🔴 `[" + gameName + "]` **" + persona + "** disconnected",
+                    genre
+            );
+            events.add(event);
         }
+
+        // Process game joins and leaves with genre grouping
         for (GameConnectionEntity join : allGameJoining) {
+            GameGenre genre = GameVersUtils.getGenreForVers(join.getPersonaConnection().getVers());
             String persona = join.getPersonaConnection().getPersona().getPers().replace("\"", "");
             String gameName = join.getGame().getName().replace("\"", "");
-            String gameVers = join.getPersonaConnection().getVers();
-            events.add(new Event(
+            String gameDisplayName = Game.findByVers(join.getPersonaConnection().getVers()) != null ?
+                    Game.findByVers(join.getPersonaConnection().getVers()).getName() : join.getPersonaConnection().getVers();
+
+            Event event = new Event(
                     join.getId(),
                     join.getStartTime(),
-                    "➡️ `[" + gameVers + "]` **" + persona + "** joined game `" + gameName + "`"
-            ));
+                    "➡️ `[" + gameDisplayName + "]` **" + persona + "** joined game `" + gameName + "`",
+                    genre
+            );
+            events.add(event);
         }
+
         for (GameConnectionEntity leave : allGameLeaving) {
+            GameGenre genre = GameVersUtils.getGenreForVers(leave.getPersonaConnection().getVers());
             String persona = leave.getPersonaConnection().getPersona().getPers().replace("\"", "");
             String gameName = leave.getGame().getName().replace("\"", "");
-            String gameVers = leave.getPersonaConnection().getVers();
-            events.add(new Event(
+            String gameDisplayName = Game.findByVers(leave.getPersonaConnection().getVers()) != null ?
+                    Game.findByVers(leave.getPersonaConnection().getVers()).getName() : leave.getPersonaConnection().getVers();
+
+            Event event = new Event(
                     leave.getId(),
                     leave.getEndTime(),
-                    "⬅️ `[" + gameVers + "]` **" + persona + "** left game `" + gameName + "`"
-            ));
+                    "⬅️ `[" + gameDisplayName + "]` **" + persona + "** left game `" + gameName + "`",
+                    genre
+            );
+            events.add(event);
         }
 
-        Collections.sort(events); // use comparator of Event class
+        Collections.sort(events);
 
-        String message = String.join("\n", events.stream().map(Event::getMessage).toList());
+        // Send events grouped by genre to respective subscribers
+        for (GameGenre genre : GameGenre.values()) {
+            List<Event> genreEvents = events.stream()
+                    .filter(event -> event.getGameGenre() == genre)
+                    .toList();
 
-        List<ChannelSubscriptionEntity> logSubs = channelSubscriptionService.getAllByType(SubscriptionType.LOGS);
-        List<String> channelIds = logSubs.stream().map(ChannelSubscriptionEntity::getChannelId).collect(Collectors.toList());
-        discordBotService.sendMessage(channelIds, message);
+            if (!genreEvents.isEmpty()) {
+                String message = String.join("\n", genreEvents.stream().map(Event::getMessage).toList());
+                List<ChannelSubscriptionEntity> logSubs = channelSubscriptionService.getAllByTypeAndGenre(SubscriptionType.LOGS, genre);
+                List<String> channelIds = logSubs.stream().map(ChannelSubscriptionEntity::getChannelId).toList();
+                if (!channelIds.isEmpty()) {
+                    discordBotService.sendMessage(channelIds, message);
+                }
+            }
+        }
     }
 
     @Scheduled(cron = "0 0 0,12 * * ?")
@@ -204,8 +258,15 @@ public class PollingService {
                 lastKnownIpEntity.setParamValue(currentIp);
                 paramRepository.save(lastKnownIpEntity);
 
-                List<ChannelSubscriptionEntity> alertSubs = channelSubscriptionService.getAllByType(SubscriptionType.ALERTS);
-                List<String> channelIds = alertSubs.stream().map(ChannelSubscriptionEntity::getChannelId).collect(Collectors.toList());
+                // Send alerts to all subscribers across all categories since IP change affects all games
+                List<ChannelSubscriptionEntity> allAlertSubs = new ArrayList<>();
+                for (GameGenre genre : GameGenre.values()) {
+                    allAlertSubs.addAll(channelSubscriptionService.getAllByTypeAndGenre(SubscriptionType.ALERTS, genre));
+                }
+                List<String> channelIds = allAlertSubs.stream()
+                        .map(ChannelSubscriptionEntity::getChannelId)
+                        .distinct()
+                        .collect(Collectors.toList());
                 discordBotService.sendMessage(channelIds, String.format("⚠️ New DNS address: `%s`", currentIp));
             }
         }

@@ -1,5 +1,6 @@
 package com.ea.model;
 
+import com.ea.enums.GameGenre;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 
@@ -11,6 +12,7 @@ public class Event implements Comparable<Event> {
     private long id;
     private LocalDateTime time;
     private String message;
+    private GameGenre gameGenre;
 
     @Override
     public int compareTo(Event other) {

@@ -1,6 +1,7 @@
 package com.ea.services.map;
 
 import com.ea.entities.discord.ChannelSubscriptionEntity;
+import com.ea.enums.GameGenre;
 import com.ea.enums.SubscriptionType;
 import com.ea.model.GeoLocation;
 import com.ea.model.LocationInfo;
@@ -147,7 +148,7 @@ public class WorldMapGenerator {
         );
     }
 
-    public void generateHeatmap(Map<String, Integer> countryHits, File outputFile) throws IOException {
+    public void generateHeatmap(Map<String, Integer> countryHits, File outputFile, GameGenre genre) throws IOException {
         if (countryHits == null || countryHits.isEmpty()) {
             log.warn("No country hits data provided");
             return;
@@ -196,7 +197,7 @@ public class WorldMapGenerator {
             map.dispose();
             log.info("Heat map generated successfully at: {}", outputFile.getAbsolutePath());
 
-            List<ChannelSubscriptionEntity> mapSubs = channelSubscriptionService.getAllByType(SubscriptionType.ACTIVITY_MAP);
+            List<ChannelSubscriptionEntity> mapSubs = channelSubscriptionService.getAllByTypeAndGenre(SubscriptionType.ACTIVITY_MAP, genre);
             List<String> channelIds = mapSubs.stream().map(ChannelSubscriptionEntity::getChannelId).collect(Collectors.toList());
             discordBotService.sendImages(channelIds, List.of(outputFile), "🗺️ Weekly activity map");
         } finally {
@@ -325,7 +326,7 @@ public class WorldMapGenerator {
         );
     }
 
-    public void generateLocationMap(Map<String, LocationInfo> locationInfoMap, File outputFile) throws IOException {
+    public void generateLocationMap(Map<String, LocationInfo> locationInfoMap, File outputFile, GameGenre genre) throws IOException {
         if (locationInfoMap == null || locationInfoMap.isEmpty()) {
             log.warn("No location information provided");
             return;
@@ -386,7 +387,7 @@ public class WorldMapGenerator {
             map.dispose();
             log.info("Location map generated successfully at: {}", outputFile.getAbsolutePath());
 
-            List<ChannelSubscriptionEntity> mapSubs = channelSubscriptionService.getAllByType(SubscriptionType.ACTIVITY_MAP);
+            List<ChannelSubscriptionEntity> mapSubs = channelSubscriptionService.getAllByTypeAndGenre(SubscriptionType.ACTIVITY_MAP, genre);
             List<String> channelIds = mapSubs.stream().map(ChannelSubscriptionEntity::getChannelId).collect(Collectors.toList());
             discordBotService.sendImages(channelIds, List.of(outputFile), "🗺️ Weekly density map");
         } finally {
