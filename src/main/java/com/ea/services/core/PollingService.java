@@ -101,7 +101,7 @@ public class PollingService {
     private void processScoreboard(LocalDateTime lastFetchTime, LocalDateTime currentFetchTime) {
         // Process scoreboards for all game categories
         for (GameGenre gameGenre : GameGenre.values()) {
-            List<String> versForGenre = GameVersUtils.getVersForGenre(gameGenre);
+            List<String> versForGenre = GameVersUtils.getAllVersForGenre(gameGenre);
             if (!versForGenre.isEmpty()) {
                 List<GameEntity> games = gameRepository.findByVersInAndEndTimeBetweenOrderByEndTimeAsc(versForGenre, lastFetchTime, currentFetchTime);
                 for (GameEntity game : games) {
