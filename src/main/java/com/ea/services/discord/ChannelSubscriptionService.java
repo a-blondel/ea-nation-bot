@@ -1,6 +1,7 @@
 package com.ea.services.discord;
 
 import com.ea.entities.discord.ChannelSubscriptionEntity;
+import com.ea.enums.GameGenre;
 import com.ea.enums.SubscriptionType;
 import com.ea.repositories.discord.ChannelSubscriptionRepository;
 import jakarta.annotation.PostConstruct;
@@ -13,39 +14,44 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
 public class ChannelSubscriptionService {
     private final ChannelSubscriptionRepository repository;
-    private final Map<SubscriptionType, List<ChannelSubscriptionEntity>> subscriptionCache = new ConcurrentHashMap<>();
+    private final Map<String, List<ChannelSubscriptionEntity>> subscriptionCache = new ConcurrentHashMap<>();
 
     @PostConstruct
     public void loadCache() {
+        // Cache subscriptions by combination of type and genre
         for (SubscriptionType type : SubscriptionType.values()) {
-            subscriptionCache.put(type, repository.findAllBySubscriptionType(type));
+            for (GameGenre genre : GameGenre.values()) {
+                String key = getCacheKey(type, genre);
+                subscriptionCache.put(key, repository.findAllBySubscriptionTypeAndGameGenre(type, genre));
+            }
         }
     }
 
     @Transactional
-    public ChannelSubscriptionEntity subscribe(String guildId, String channelId, SubscriptionType subscriptionType) {
-        Optional<ChannelSubscriptionEntity> existing = repository.findByGuildIdAndSubscriptionType(guildId, subscriptionType);
+    public ChannelSubscriptionEntity subscribe(String guildId, String channelId, SubscriptionType subscriptionType, GameGenre gameGenre) {
+        Optional<ChannelSubscriptionEntity> existing = repository.findByGuildIdAndSubscriptionTypeAndGameGenre(guildId, subscriptionType, gameGenre);
         ChannelSubscriptionEntity entity = existing.orElseGet(ChannelSubscriptionEntity::new);
         entity.setGuildId(guildId);
         entity.setChannelId(channelId);
         entity.setSubscriptionType(subscriptionType);
+        entity.setGameGenre(gameGenre);
         entity.setUpdatedAt(LocalDateTime.now());
         if (entity.getCreatedAt() == null) {
             entity.setCreatedAt(LocalDateTime.now());
         }
         ChannelSubscriptionEntity saved = repository.save(entity);
+
         // Update cache
-        subscriptionCache.compute(subscriptionType, (type, list) -> {
+        String cacheKey = getCacheKey(subscriptionType, gameGenre);
+        subscriptionCache.compute(cacheKey, (key, list) -> {
             List<ChannelSubscriptionEntity> filtered = list == null ? List.of() : list.stream()
                     .filter(sub -> !(sub.getGuildId().equals(guildId)))
                     .toList();
-            // Only one per guild/type
             return new java.util.ArrayList<>() {{
                 addAll(filtered);
                 add(saved);
@@ -55,15 +61,22 @@ public class ChannelSubscriptionService {
     }
 
     @Transactional
-    public void unsubscribe(String guildId, SubscriptionType subscriptionType) {
-        repository.deleteByGuildIdAndSubscriptionType(guildId, subscriptionType);
+    public void unsubscribe(String guildId, SubscriptionType subscriptionType, GameGenre gameGenre) {
+        repository.deleteByGuildIdAndSubscriptionTypeAndGameGenre(guildId, subscriptionType, gameGenre);
+
         // Update cache
-        subscriptionCache.computeIfPresent(subscriptionType, (type, list) ->
-                list.stream().filter(sub -> !sub.getGuildId().equals(guildId)).collect(Collectors.toList())
+        String cacheKey = getCacheKey(subscriptionType, gameGenre);
+        subscriptionCache.computeIfPresent(cacheKey, (key, list) ->
+                list.stream().filter(sub -> !sub.getGuildId().equals(guildId)).toList()
         );
     }
 
-    public List<ChannelSubscriptionEntity> getAllByType(SubscriptionType subscriptionType) {
-        return subscriptionCache.getOrDefault(subscriptionType, List.of());
+    public List<ChannelSubscriptionEntity> getAllByTypeAndGenre(SubscriptionType subscriptionType, GameGenre gameGenre) {
+        String cacheKey = getCacheKey(subscriptionType, gameGenre);
+        return subscriptionCache.getOrDefault(cacheKey, List.of());
+    }
+
+    private String getCacheKey(SubscriptionType type, GameGenre genre) {
+        return type.name() + "_" + genre.name();
     }
 }

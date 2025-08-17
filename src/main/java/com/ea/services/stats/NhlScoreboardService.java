@@ -6,11 +6,13 @@ import com.ea.entities.core.PersonaEntity;
 import com.ea.entities.discord.ChannelSubscriptionEntity;
 import com.ea.entities.stats.NhlGameReportEntity;
 import com.ea.entities.stats.NhlPersonaStatsEntity;
+import com.ea.enums.GameGenre;
 import com.ea.enums.NhlTeam;
 import com.ea.enums.SubscriptionType;
 import com.ea.repositories.stats.NhlPersonaStatsRepository;
 import com.ea.services.discord.ChannelSubscriptionService;
 import com.ea.services.discord.DiscordBotService;
+import com.ea.utils.GameVersUtils;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.openqa.selenium.OutputType;
@@ -32,7 +34,6 @@ import java.io.InputStream;
 import java.nio.file.Files;
 import java.nio.file.StandardCopyOption;
 import java.util.*;
-import java.util.stream.Collectors;
 
 @Slf4j
 @Service
@@ -137,10 +138,20 @@ public class NhlScoreboardService {
             String htmlContent = templateEngine.process("nhl/template", context);
             File imageFile = renderHtmlToImage(htmlContent, game.getId());
 
-            // Send to Discord channels
-            List<ChannelSubscriptionEntity> scoreboardSubs = channelSubscriptionService.getAllByType(SubscriptionType.SCOREBOARD);
-            List<String> channelIds = scoreboardSubs.stream().map(ChannelSubscriptionEntity::getChannelId).collect(Collectors.toList());
-            discordBotService.sendImages(channelIds, Collections.singletonList(imageFile), null);
+            // Get the game genre based on the game's VERS
+            GameGenre gameGenre = GameVersUtils.getGenreForVers(game.getVers());
+            if (gameGenre == null) {
+                log.warn("Unknown game genre for VERS: {}, defaulting to HOCKEY", game.getVers());
+                gameGenre = GameGenre.HOCKEY;
+            }
+
+            // Get subscribers for the specific game genre
+            List<ChannelSubscriptionEntity> scoreboardSubs = channelSubscriptionService.getAllByTypeAndGenre(SubscriptionType.SCOREBOARD, gameGenre);
+            List<String> channelIds = scoreboardSubs.stream().map(ChannelSubscriptionEntity::getChannelId).toList();
+
+            if (!channelIds.isEmpty()) {
+                discordBotService.sendImages(channelIds, Collections.singletonList(imageFile), null);
+            }
 
         } catch (Exception e) {
             log.error("Error generating NHL scoreboard for game #{}", game.getId(), e);

@@ -1,5 +1,6 @@
 package com.ea.entities.discord;
 
+import com.ea.enums.GameGenre;
 import com.ea.enums.SubscriptionType;
 import jakarta.persistence.*;
 import lombok.Getter;
@@ -19,15 +20,19 @@ public class ChannelSubscriptionEntity {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(name = "guild_id", nullable = false, length = 32)
+    @Column(name = "guild_id", nullable = false)
     private String guildId;
 
-    @Column(name = "channel_id", nullable = false, length = 32)
+    @Column(name = "channel_id", nullable = false)
     private String channelId;
 
     @Enumerated(EnumType.STRING)
-    @Column(name = "subscription_type", nullable = false, length = 32)
+    @Column(name = "subscription_type", nullable = false)
     private SubscriptionType subscriptionType;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "game_genre", nullable = false)
+    private GameGenre gameGenre;
 
     @Column(name = "created_at")
     private LocalDateTime createdAt;

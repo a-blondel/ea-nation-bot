@@ -1,10 +1,12 @@
 package com.ea.entities.discord;
 
+import com.ea.enums.GameGenre;
 import jakarta.persistence.*;
-import lombok.Getter;
-import lombok.Setter;
-import lombok.NoArgsConstructor;
 import lombok.AllArgsConstructor;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
+
 import java.time.LocalDateTime;
 
 
@@ -30,4 +32,8 @@ public class StatusMessageEntity {
 
     @Column(name = "updated_at", nullable = false)
     private LocalDateTime updatedAt = LocalDateTime.now();
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "game_genre", nullable = false)
+    private GameGenre gameGenre;
 }

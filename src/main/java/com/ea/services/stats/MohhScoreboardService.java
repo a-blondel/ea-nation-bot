@@ -4,10 +4,12 @@ import com.ea.entities.core.GameConnectionEntity;
 import com.ea.entities.core.GameEntity;
 import com.ea.entities.discord.ChannelSubscriptionEntity;
 import com.ea.entities.stats.MohhGameReportEntity;
+import com.ea.enums.GameGenre;
 import com.ea.enums.MapMoHH;
 import com.ea.enums.SubscriptionType;
 import com.ea.services.discord.ChannelSubscriptionService;
 import com.ea.services.discord.DiscordBotService;
+import com.ea.utils.GameVersUtils;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.openqa.selenium.OutputType;
@@ -112,9 +114,20 @@ public class MohhScoreboardService {
                 }
             }
 
-            List<ChannelSubscriptionEntity> scoreboardSubs = channelSubscriptionService.getAllByType(SubscriptionType.SCOREBOARD);
-            List<String> channelIds = scoreboardSubs.stream().map(ChannelSubscriptionEntity::getChannelId).collect(Collectors.toList());
-            discordBotService.sendImages(channelIds, imageFiles, null);
+            // Get the game genre based on the game's VERS
+            GameGenre gameGenre = GameVersUtils.getGenreForVers(game.getVers());
+            if (gameGenre == null) {
+                log.warn("Unknown game genre for VERS: {}, defaulting to FPS", game.getVers());
+                gameGenre = GameGenre.FPS;
+            }
+
+            // Get subscribers for the specific game genre
+            List<ChannelSubscriptionEntity> scoreboardSubs = channelSubscriptionService.getAllByTypeAndGenre(SubscriptionType.SCOREBOARD, gameGenre);
+            List<String> channelIds = scoreboardSubs.stream().map(ChannelSubscriptionEntity::getChannelId).toList();
+
+            if (!channelIds.isEmpty()) {
+                discordBotService.sendImages(channelIds, imageFiles, null);
+            }
 
         } catch (Exception e) {
             log.error("Error generating scoreboard for game #{}", game.getId(), e);
@@ -373,3 +386,4 @@ public class MohhScoreboardService {
         String teamWinner;
     }
 }
+
