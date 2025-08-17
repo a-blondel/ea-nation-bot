@@ -16,6 +16,4 @@ public interface ChannelSubscriptionRepository extends JpaRepository<ChannelSubs
     void deleteByGuildIdAndSubscriptionTypeAndGameGenre(String guildId, SubscriptionType subscriptionType, GameGenre gameGenre);
 
     List<ChannelSubscriptionEntity> findAllBySubscriptionTypeAndGameGenre(SubscriptionType subscriptionType, GameGenre gameGenre);
-
-    List<ChannelSubscriptionEntity> findAllByGameGenre(GameGenre gameGenre);
 }

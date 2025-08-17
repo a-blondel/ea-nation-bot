@@ -57,7 +57,6 @@ public class StatusMessageContentService {
 
         // Build the status message
         StringBuilder content = new StringBuilder();
-        //content.append("# ").append(formatGenreName(gameGenre)).append(" Games\n\n");
 
         // Display status for ALL games in enum order (even without activity)
         for (Game game : games) {
@@ -75,10 +74,7 @@ public class StatusMessageContentService {
      */
     private Map<Game, List<PersonaConnectionEntity>> groupPlayersByGame(List<PersonaConnectionEntity> lobbyPlayers) {
         return lobbyPlayers.stream()
-                .collect(Collectors.groupingBy(player -> {
-                    Game game = Game.findByVers(player.getVers());
-                    return game != null ? game : Game.MEDAL_OF_HONOR_HEROES; // fallback
-                }));
+                .collect(Collectors.groupingBy(player -> Game.findByVers(player.getVers())));
     }
 
     /**
@@ -86,10 +82,7 @@ public class StatusMessageContentService {
      */
     private Map<Game, List<GameEntity>> groupActiveGamesByGame(List<GameEntity> activeGames, Game[] genreGames) {
         return activeGames.stream()
-                .collect(Collectors.groupingBy(gameEntity -> {
-                    Game game = Game.findByServerVers(gameEntity.getVers());
-                    return game != null ? game : genreGames[0]; // fallback to first game of genre
-                }));
+                .collect(Collectors.groupingBy(gameEntity -> Game.findByServerVers(gameEntity.getVers())));
     }
 
     /**
@@ -173,21 +166,5 @@ public class StatusMessageContentService {
         } else {
             return "🟡 Waiting for players";
         }
-    }
-
-    /**
-     * Format the genre name for display.
-     */
-    private String formatGenreName(GameGenre genre) {
-        return switch (genre) {
-            case FOOTBALL -> "Football";
-            case AMERICAN_FOOTBALL -> "American Football";
-            case BASKETBALL -> "Basketball";
-            case RACING -> "Racing";
-            case HOCKEY -> "Hockey";
-            case FPS -> "FPS";
-            case GOLF -> "Golf";
-            case FIGHTING -> "Fighting";
-        };
     }
 }

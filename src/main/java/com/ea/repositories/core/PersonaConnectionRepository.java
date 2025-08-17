@@ -24,18 +24,6 @@ public interface PersonaConnectionRepository extends JpaRepository<PersonaConnec
     @Query("SELECT pc FROM PersonaConnectionEntity pc WHERE pc.isHost = false AND pc.endTime BETWEEN :start AND :end ORDER BY pc.endTime")
     List<PersonaConnectionEntity> findPersonaLogouts(LocalDateTime start, LocalDateTime end);
 
-    List<PersonaConnectionEntity> findByStartTimeGreaterThan(LocalDateTime start);
-
-    /**
-     * Find persona connections by start time and VERS codes for game genre filtering.
-     *
-     * @param start         the start time threshold
-     * @param versCodesList list of VERS codes to filter by
-     * @return list of persona connections matching the criteria
-     */
-    @Query("SELECT pc FROM PersonaConnectionEntity pc WHERE pc.startTime > :start AND pc.vers IN :versCodesList")
-    List<PersonaConnectionEntity> findByStartTimeGreaterThanAndVersIn(@Param("start") LocalDateTime start, @Param("versCodesList") List<String> versCodesList);
-
     /**
      * Find players currently connected in lobby (not in game) for specific VERS codes.
      * These are players connected but not participating in any active game.

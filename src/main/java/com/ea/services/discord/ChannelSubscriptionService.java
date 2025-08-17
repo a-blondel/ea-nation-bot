@@ -76,10 +76,6 @@ public class ChannelSubscriptionService {
         return subscriptionCache.getOrDefault(cacheKey, List.of());
     }
 
-    public List<ChannelSubscriptionEntity> getAllByGenre(GameGenre gameGenre) {
-        return repository.findAllByGameGenre(gameGenre);
-    }
-
     private String getCacheKey(SubscriptionType type, GameGenre genre) {
         return type.name() + "_" + genre.name();
     }

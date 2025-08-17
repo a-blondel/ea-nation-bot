@@ -46,6 +46,9 @@ public class GameVersUtils {
      */
     public static GameGenre getGenreForVers(String vers) {
         Game game = Game.findByVers(vers);
+        if (game == null) {
+            game = Game.findByServerVers(vers);
+        }
         return game != null ? game.getGameGenre() : null;
     }
 }

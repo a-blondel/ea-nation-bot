@@ -155,7 +155,7 @@ public class PollingService {
         for (PersonaConnectionEntity login : personaLogins) {
             GameGenre genre = GameVersUtils.getGenreForVers(login.getVers());
             String persona = login.getPersona().getPers().replace("\"", "");
-            String gameName = GameVersUtils.getNamesForGenre(genre != null ? genre : GameGenre.FPS)
+            String gameName = GameVersUtils.getNamesForGenre(genre)
                     .stream()
                     .filter(name -> Game.findByVers(login.getVers()) != null && Game.findByVers(login.getVers()).getName().equals(name))
                     .findFirst()
@@ -174,7 +174,7 @@ public class PollingService {
         for (PersonaConnectionEntity logout : personaLogouts) {
             GameGenre genre = GameVersUtils.getGenreForVers(logout.getVers());
             String persona = logout.getPersona().getPers().replace("\"", "");
-            String gameName = GameVersUtils.getNamesForGenre(genre != null ? genre : GameGenre.FPS)
+            String gameName = GameVersUtils.getNamesForGenre(genre)
                     .stream()
                     .filter(name -> Game.findByVers(logout.getVers()) != null && Game.findByVers(logout.getVers()).getName().equals(name))
                     .findFirst()

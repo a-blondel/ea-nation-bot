@@ -2,6 +2,8 @@ package com.ea.enums;
 
 import lombok.Getter;
 
+import java.util.Arrays;
+
 /**
  * Represents individual games supported by the bot.
  * Each game has a name, VERS code (used for API queries), and belongs to a genre.
@@ -108,7 +110,7 @@ public enum Game {
      * @return array of games in the specified genre
      */
     public static Game[] getGamesByGenre(GameGenre genre) {
-        return java.util.Arrays.stream(values())
+        return Arrays.stream(values())
                 .filter(game -> game.gameGenre == genre)
                 .toArray(Game[]::new);
     }
@@ -120,7 +122,7 @@ public enum Game {
      * @return array of client VERS codes
      */
     public static String[] getClientVersCodesByGenre(GameGenre genre) {
-        return java.util.Arrays.stream(values())
+        return Arrays.stream(values())
                 .filter(game -> game.gameGenre == genre)
                 .map(Game::getVers)
                 .toArray(String[]::new);
@@ -133,7 +135,7 @@ public enum Game {
      * @return array of server VERS codes
      */
     public static String[] getServerVersCodesByGenre(GameGenre genre) {
-        return java.util.Arrays.stream(values())
+        return Arrays.stream(values())
                 .filter(game -> game.gameGenre == genre)
                 .map(Game::getEffectiveServerVers)
                 .distinct()
