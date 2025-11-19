@@ -8,7 +8,7 @@ RUN mvn clean package -DskipTests
 FROM ibm-semeru-runtimes:open-21-jre-jammy
 
 # See https://googlechromelabs.github.io/chrome-for-testing/
-ENV CHROMEDRIVER_VERSION=139.0.7258.68
+ENV CHROMEDRIVER_VERSION=142.0.7444.175
 
 # Install dependencies, Chrome, and ChromeDriver
 RUN apt-get update && \

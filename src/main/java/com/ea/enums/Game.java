@@ -30,6 +30,7 @@ public enum Game {
     NCAA_FOOTBALL_07("NCAA Football 07", "PSP/NCAA07", GameGenre.AMERICAN_FOOTBALL),
 
     // BASKETBALL genre
+    NBA_LIVE_06("NBA Live 06", "PSP/NBA06", GameGenre.BASKETBALL),
     NBA_LIVE_07("NBA Live 07", "PSP/NBA07", GameGenre.BASKETBALL),
     NBA_LIVE_08("NBA Live 08", "PSP/NBA08", GameGenre.BASKETBALL),
 
