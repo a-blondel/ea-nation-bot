@@ -17,6 +17,7 @@ import com.ea.repositories.discord.ParamRepository;
 import com.ea.services.discord.ChannelSubscriptionService;
 import com.ea.services.discord.DiscordBotService;
 import com.ea.services.stats.MohhScoreboardService;
+import com.ea.services.stats.NfsScoreboardService;
 import com.ea.services.stats.NhlScoreboardService;
 import com.ea.utils.GameVersUtils;
 import jakarta.annotation.PostConstruct;
@@ -49,6 +50,7 @@ public class PollingService {
     private final GameConnectionRepository gameConnectionRepository;
     private final PersonaConnectionRepository personaConnectionRepository;
     private final MohhScoreboardService mohhScoreboardService;
+    private final NfsScoreboardService nfsScoreboardService;
     private final NhlScoreboardService nhlScoreboardService;
     private final DiscordBotService discordBotService;
     private final ChannelSubscriptionService channelSubscriptionService;
@@ -109,6 +111,7 @@ public class PollingService {
                     switch (gameGenre) {
                         case FPS -> mohhScoreboardService.generateScoreboard(game);
                         case HOCKEY -> nhlScoreboardService.generateScoreboard(game);
+                        case RACING -> nfsScoreboardService.generateScoreboard(game);
                         // Other categories can be added here when their scoreboard services are implemented
                         default -> {
                         }
