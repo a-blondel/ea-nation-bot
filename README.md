@@ -17,6 +17,9 @@
 <img src="doc/mohh-scoreboard.png" alt="MoHH scoreboard" /><br/>
 *MoHH Scoreboard*
 
+<img src="doc/nfs-scoreboard.png" alt="NFS scoreboard" /><br/>
+*NFS Scoreboard*
+
 <img src="doc/nhl-scoreboard.png" alt="NHL scoreboard" /><br/>
 *NHL Scoreboard*
 
