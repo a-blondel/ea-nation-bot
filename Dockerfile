@@ -8,15 +8,16 @@ RUN mvn clean package -DskipTests
 FROM ibm-semeru-runtimes:open-21-jre-jammy
 
 # See https://googlechromelabs.github.io/chrome-for-testing/
-ENV CHROMEDRIVER_VERSION=142.0.7444.175
+ENV CHROMEDRIVER_VERSION=143.0.7499.169
 
-# Install dependencies, Chrome, and ChromeDriver
+# Install dependencies, Chrome, ChromeDriver, and emoji fonts
 RUN apt-get update && \
     apt-get install -y --no-install-recommends \
         wget \
         unzip \
         gnupg2 \
-        ca-certificates && \
+        ca-certificates \
+        fonts-noto-color-emoji && \
     wget -q -O - https://dl.google.com/linux/linux_signing_key.pub | apt-key add - && \
     echo "deb [arch=amd64] http://dl.google.com/linux/chrome/deb/ stable main" > /etc/apt/sources.list.d/google.list && \
     apt-get update && \
