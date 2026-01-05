@@ -76,6 +76,7 @@ public class DiscordBotService {
     private OptionData getGameGenreOptions() {
         return new OptionData(OptionType.STRING, "genre", "Game genre to subscribe to", true)
                 .addChoices(
+                        new Command.Choice("All genres (summary view)", GameGenre.ALL.getValue()),
                         new Command.Choice("Football (FIFA, UEFA)", GameGenre.FOOTBALL.getValue()),
                         new Command.Choice("Fighting (Fight Night)", GameGenre.FIGHTING.getValue()),
                         new Command.Choice("American Football (Madden, NCAA)", GameGenre.AMERICAN_FOOTBALL.getValue()),

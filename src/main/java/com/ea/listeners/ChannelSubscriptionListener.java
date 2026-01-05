@@ -57,6 +57,12 @@ public class ChannelSubscriptionListener extends ListenerAdapter {
             return;
         }
 
+        // Validate that "All genres" is only available for STATUS subscription type
+        if (gameGenre == GameGenre.ALL && subscriptionType != SubscriptionType.STATUS) {
+            event.reply("The 'All genres' option is only available for STATUS subscription type.").setEphemeral(true).queue();
+            return;
+        }
+
         if (!event.getMember().hasPermission(MANAGE_SERVER)) {
             event.reply("You must have the 'Manage Server' permission to use this command.").setEphemeral(true).queue();
             return;

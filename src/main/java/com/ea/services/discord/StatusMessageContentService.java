@@ -37,6 +37,11 @@ public class StatusMessageContentService {
     public String generateStatusContent(GameGenre gameGenre) {
         log.debug("Generating status content for genre: {}", gameGenre);
 
+        // Handle ALL genre - generate summary view
+        if (gameGenre == GameGenre.ALL) {
+            return generateSummaryContent();
+        }
+
         // Get all games for this genre
         Game[] games = Game.getGamesByGenre(gameGenre);
         if (games.length == 0) {
@@ -166,5 +171,111 @@ public class StatusMessageContentService {
         } else {
             return "🟡 Waiting for players";
         }
+    }
+
+    /**
+     * Generate summary content showing total players per game genre.
+     *
+     * @return formatted Markdown content with player counts per genre
+     */
+    private String generateSummaryContent() {
+        log.debug("Generating summary content for all genres");
+
+        StringBuilder content = new StringBuilder();
+        content.append("## Player count\n\n\n");
+
+        int totalPlayers = 0;
+
+        for (GameGenre genre : GameGenre.values()) {
+            // Skip ALL genre itself
+            if (genre == GameGenre.ALL) {
+                continue;
+            }
+
+            int genreCount = getPlayerCountForGenre(genre);
+            totalPlayers += genreCount;
+
+            String emoji = getEmojiForGenre(genre);
+            String genreName = getDisplayNameForGenre(genre);
+
+            content.append("- ").append(emoji).append(" ").append(genreName).append(" - ");
+            content.append(genreCount).append("\n");
+        }
+
+        content.append("\n---\n");
+        content.append("Total: ").append(totalPlayers);
+        content.append("\n");
+
+        return content.toString();
+    }
+
+    /**
+     * Get the total player count for a specific genre (lobby + in-game combined).
+     * For FPS games, hosts are not counted as they don't play (they only host).
+     * For other games, hosts are counted as active players.
+     */
+    private int getPlayerCountForGenre(GameGenre genre) {
+        Game[] games = Game.getGamesByGenre(genre);
+        if (games.length == 0) {
+            return 0;
+        }
+
+        // Get client and server VERS codes
+        List<String> clientVersCodes = Arrays.asList(Game.getClientVersCodesByGenre(genre));
+        List<String> serverVersCodes = Arrays.asList(Game.getServerVersCodesByGenre(genre));
+
+        // Count players in lobby
+        List<PersonaConnectionEntity> lobbyPlayers = personaConnectionRepository.findPlayersInLobbyByVers(clientVersCodes);
+        int lobbyCount = lobbyPlayers.size();
+
+        // Count players in active games
+        List<GameEntity> activeGames = gameRepository.findActiveGamesByServerVers(serverVersCodes);
+        int inGameCount = 0;
+        boolean excludeHosts = (genre == GameGenre.FPS); // Don't count hosts for FPS games (dedicated servers)
+
+        for (GameEntity game : activeGames) {
+            if (game.getGameConnections() != null) {
+                inGameCount += (int) game.getGameConnections().stream()
+                        .filter(gc -> gc.getEndTime() == null)
+                        .filter(gc -> !excludeHosts || !gc.getPersonaConnection().isHost())
+                        .count();
+            }
+        }
+
+        return lobbyCount + inGameCount;
+    }
+
+    /**
+     * Get the emoji for a game genre.
+     */
+    private String getEmojiForGenre(GameGenre genre) {
+        return switch (genre) {
+            case ALL -> "🎮";
+            case FOOTBALL -> "⚽";
+            case FIGHTING -> "🥊";
+            case AMERICAN_FOOTBALL -> "🏈";
+            case BASKETBALL -> "🏀";
+            case RACING -> "🏎️";
+            case HOCKEY -> "🏒";
+            case FPS -> "🔫";
+            case GOLF -> "⛳";
+        };
+    }
+
+    /**
+     * Get the display name for a game genre.
+     */
+    private String getDisplayNameForGenre(GameGenre genre) {
+        return switch (genre) {
+            case ALL -> "All Genres";
+            case FOOTBALL -> "Football (FIFA, UEFA)";
+            case FIGHTING -> "Fighting (Fight Night)";
+            case AMERICAN_FOOTBALL -> "American Football (Madden, NCAA)";
+            case BASKETBALL -> "Basketball (NBA Live)";
+            case RACING -> "Racing (Need for Speed)";
+            case HOCKEY -> "Hockey (NHL)";
+            case FPS -> "FPS (Medal of Honor)";
+            case GOLF -> "Golf (Tiger Woods PGA)";
+        };
     }
 }

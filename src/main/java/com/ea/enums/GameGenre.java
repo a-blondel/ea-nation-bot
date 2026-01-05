@@ -8,6 +8,7 @@ import lombok.Getter;
  */
 @Getter
 public enum GameGenre {
+    ALL("ALL"),
     FOOTBALL("FOOTBALL"),
     FIGHTING("FIGHTING"),
     AMERICAN_FOOTBALL("AMERICAN_FOOTBALL"),
