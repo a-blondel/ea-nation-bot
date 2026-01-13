@@ -2,6 +2,7 @@ package com.ea.services.discord;
 
 import com.ea.entities.discord.StatusMessageEntity;
 import com.ea.enums.GameGenre;
+import com.ea.enums.SubscriptionType;
 import com.ea.repositories.discord.DiscordStatusMessageRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -29,6 +30,7 @@ public class StatusMessageService {
 
     private final DiscordStatusMessageRepository statusMessageRepository;
     private final StatusMessageContentService statusMessageContentService;
+    private final ChannelSubscriptionService channelSubscriptionService;
     private final JDA jda;
 
     @Value("${services.bot-activity-enabled}")
@@ -116,8 +118,23 @@ public class StatusMessageService {
                             log.debug("Updated status message for genre {} in channel {}",
                                     entry.getGameGenre(), entry.getChannelId());
                         }, error -> {
-                            log.error("Failed to edit status message for channel {} and genre {}",
-                                    entry.getChannelId(), entry.getGameGenre(), error);
+                            // Check if message was deleted (error code 10008: Unknown Message)
+                            if (error.getMessage() != null && error.getMessage().contains("10008")) {
+                                log.info("Status message {} was deleted, removing subscriptions for channel {} and genre {}",
+                                        entry.getMessageId(), entry.getChannelId(), entry.getGameGenre());
+                                // Delete both the status message and channel subscription since the message was removed
+                                try {
+                                    statusMessageRepository.delete(entry);
+                                    channelSubscriptionService.unsubscribe(entry.getGuildId(), SubscriptionType.STATUS, entry.getGameGenre());
+                                    log.info("Successfully removed all subscriptions for guild {} and genre {}", entry.getGuildId(), entry.getGameGenre());
+                                } catch (Exception deleteError) {
+                                    log.error("Failed to delete subscriptions for guild {} and genre {}",
+                                            entry.getGuildId(), entry.getGameGenre(), deleteError);
+                                }
+                            } else {
+                                log.error("Failed to edit status message for channel {} and genre {}",
+                                        entry.getChannelId(), entry.getGameGenre(), error);
+                            }
                             latch.countDown();
                         });
             }
