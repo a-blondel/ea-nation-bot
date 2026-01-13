@@ -8,6 +8,7 @@ import lombok.Getter;
  */
 @Getter
 public enum MostWantedTrack {
+    CITY_POWER_FORWARD(0, "CITY POWER"),
     CITY_POWER_REVERSE(1, "CITY POWER"),
     GREAT_NORTHERN_WAY_REVERSE(2, "GREAT NORTHERN WAY"),
     GREAT_NORTHERN_WAY_FORWARD(3, "GREAT NORTHERN WAY"),
