@@ -167,7 +167,7 @@ public class PollingService {
             Event event = new Event(
                     login.getId(),
                     login.getStartTime(),
-                    "🟢 `[" + gameName + "]` **" + persona + "** connected",
+                    "🟢 `" + gameName + "` **" + persona + "** connected",
                     genre
             );
             events.add(event);
@@ -186,7 +186,7 @@ public class PollingService {
             Event event = new Event(
                     logout.getId(),
                     logout.getEndTime(),
-                    "🔴 `[" + gameName + "]` **" + persona + "** disconnected",
+                    "🔴 `" + gameName + "` **" + persona + "** disconnected",
                     genre
             );
             events.add(event);
@@ -203,7 +203,7 @@ public class PollingService {
             Event event = new Event(
                     join.getId(),
                     join.getStartTime(),
-                    "➡️ `[" + gameDisplayName + "]` **" + persona + "** joined game `" + gameName + "`",
+                    "➡️ `" + gameDisplayName + "` **" + persona + "** joined game `" + gameName + "`",
                     genre
             );
             events.add(event);
@@ -219,7 +219,7 @@ public class PollingService {
             Event event = new Event(
                     leave.getId(),
                     leave.getEndTime(),
-                    "⬅️ `[" + gameDisplayName + "]` **" + persona + "** left game `" + gameName + "`",
+                    "⬅️ `" + gameDisplayName + "` **" + persona + "** left game `" + gameName + "`",
                     genre
             );
             events.add(event);
