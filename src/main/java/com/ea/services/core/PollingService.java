@@ -41,9 +41,9 @@ import java.util.stream.Stream;
 @Service
 public class PollingService {
     public static final String DATETIME_FORMAT = "yyyy-MM-dd HH:mm:ss.SSSSSS";
-    public static final String PSP_MOH_07 = "PSP/MOH07";
-    public static final String PSP_MOH_08 = "PSP/MOH08";
-    public static final String WII_MOH_08 = "WII/MOH08";
+    public static final String PSP_MOH_07 = "PSP_MOH07";
+    public static final String PSP_MOH_08 = "PSP_MOH08";
+    public static final String WII_MOH_08 = "WII_MOH08";
     public static final List<String> MOH07_OR_MOH08 = List.of(PSP_MOH_07, PSP_MOH_08, WII_MOH_08);
     private final ParamRepository paramRepository;
     private final GameRepository gameRepository;

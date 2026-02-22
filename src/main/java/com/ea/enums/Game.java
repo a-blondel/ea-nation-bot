@@ -11,51 +11,51 @@ import java.util.Arrays;
 @Getter
 public enum Game {
     // FOOTBALL genre
-    UEFA_CHAMPIONS_LEAGUE_2006_2007_PSP("[PSP] UEFA Champions League 2006-2007", "PSP/UEFA07", GameGenre.FOOTBALL),
-    FIFA_07_PSP("[PSP] FIFA 07", "PSP/FIFA07", GameGenre.FOOTBALL),
-    FIFA_07_PS2("[PS2] FIFA 07", "PS2/FIFA07", GameGenre.FOOTBALL),
-    FIFA_08_PSP("[PSP] FIFA 08", "PSP/FIFA08", GameGenre.FOOTBALL),
-    FIFA_08_PS2("[PS2] FIFA 08", "PS2/FIFA08", GameGenre.FOOTBALL),
-    FIFA_09_PSP("[PSP] FIFA 09", "PSP/FIFA09", GameGenre.FOOTBALL),
-    FIFA_10_PSP("[PSP] FIFA 10", "PSP/FIFA10", GameGenre.FOOTBALL),
-    FIFA_WORLD_CUP_GERMANY_2006_PSP("[PSP] FIFA World Cup Germany 2006", "FLM", GameGenre.FOOTBALL),
-    FIFA_WORLD_CUP_SOUTH_AFRICA_2010_PSP("[PSP] FIFA World Cup South Africa 2010", "PSP/WORLDCUP10", GameGenre.FOOTBALL),
+    UEFA_CHAMPIONS_LEAGUE_2006_2007_PSP("[PSP] UEFA Champions League 2006-2007", "PSP_UEFA07", GameGenre.FOOTBALL),
+    FIFA_07_PSP("[PSP] FIFA 07", "PSP_FIFA07", GameGenre.FOOTBALL),
+    FIFA_07_PS2("[PS2] FIFA 07", "PS2_FIFA07", GameGenre.FOOTBALL),
+    FIFA_08_PSP("[PSP] FIFA 08", "PSP_FIFA08", GameGenre.FOOTBALL),
+    FIFA_08_PS2("[PS2] FIFA 08", "PS2_FIFA08", GameGenre.FOOTBALL),
+    FIFA_09_PSP("[PSP] FIFA 09", "PSP_FIFA09", GameGenre.FOOTBALL),
+    FIFA_10_PSP("[PSP] FIFA 10", "PSP_FIFA10", GameGenre.FOOTBALL),
+    FIFA_WORLD_CUP_GERMANY_2006_PSP("[PSP] FIFA World Cup Germany 2006", "PSP_WORLDCUP06", GameGenre.FOOTBALL),
+    FIFA_WORLD_CUP_SOUTH_AFRICA_2010_PSP("[PSP] FIFA World Cup South Africa 2010", "PSP_WORLDCUP10", GameGenre.FOOTBALL),
 
     // FIGHTING genre
-    FIGHT_NIGHT_ROUND_3_PSP("[PSP] Fight Night Round 3", "PSP/KOK06", GameGenre.FIGHTING),
+    FIGHT_NIGHT_ROUND_3_PSP("[PSP] Fight Night Round 3", "PSP_KOK06", GameGenre.FIGHTING),
 
     // AMERICAN_FOOTBALL genre
-    MADDEN_NFL_07_PSP("[PSP] Madden NFL 07", "PSP/MADDEN07", GameGenre.AMERICAN_FOOTBALL),
-    MADDEN_NFL_08_PSP("[PSP] Madden NFL 08", "PSP/MADDEN-2008", GameGenre.AMERICAN_FOOTBALL),
-    MADDEN_NFL_09_PSP("[PSP] Madden NFL 09", "PSP/MADDEN-2009", GameGenre.AMERICAN_FOOTBALL),
-    MADDEN_NFL_10_PSP("[PSP] Madden NFL 10", "PSP/MADDEN-2010", GameGenre.AMERICAN_FOOTBALL),
-    NCAA_FOOTBALL_07_PSP("[PSP] NCAA Football 07", "PSP/NCAA07", GameGenre.AMERICAN_FOOTBALL),
+    MADDEN_NFL_07_PSP("[PSP] Madden NFL 07", "PSP_MADDEN07", GameGenre.AMERICAN_FOOTBALL),
+    MADDEN_NFL_08_PSP("[PSP] Madden NFL 08", "PSP_MADDEN08", GameGenre.AMERICAN_FOOTBALL),
+    MADDEN_NFL_09_PSP("[PSP] Madden NFL 09", "PSP_MADDEN09", GameGenre.AMERICAN_FOOTBALL),
+    MADDEN_NFL_10_PSP("[PSP] Madden NFL 10", "PSP_MADDEN10", GameGenre.AMERICAN_FOOTBALL),
+    NCAA_FOOTBALL_07_PSP("[PSP] NCAA Football 07", "PSP_NCAA07", GameGenre.AMERICAN_FOOTBALL),
 
     // BASKETBALL genre
-    NBA_LIVE_06_PSP("[PSP] NBA Live 06", "PSP/NBA06", GameGenre.BASKETBALL),
-    NBA_LIVE_07_PSP("[PSP] NBA Live 07", "PSP/NBA07", GameGenre.BASKETBALL),
-    NBA_LIVE_08_PSP("[PSP] NBA Live 08", "PSP/NBA08", GameGenre.BASKETBALL),
+    NBA_LIVE_06_PSP("[PSP] NBA Live 06", "PSP_NBA06", GameGenre.BASKETBALL),
+    NBA_LIVE_07_PSP("[PSP] NBA Live 07", "PSP_NBA07", GameGenre.BASKETBALL),
+    NBA_LIVE_08_PSP("[PSP] NBA Live 08", "PSP_NBA08", GameGenre.BASKETBALL),
 
     // RACING genre
-    NEED_FOR_SPEED_MOST_WANTED_PC("[PC] Need for Speed: Most Wanted 2005", "\"pc/1.3-Nov 21 2005\"", GameGenre.RACING),
-    NEED_FOR_SPEED_MOST_WANTED_PS2("[PS2] Need for Speed: Most Wanted 2005 (Alpha)", "\"ps2/1.2-Sep 20 2005\"", GameGenre.RACING),
-    NEED_FOR_SPEED_MOST_WANTED_5_1_0_PSP("[PSP] Need for Speed: Most Wanted 5-1-0", "PSP/NFS06", GameGenre.RACING),
-    NEED_FOR_SPEED_CARBON_OWN_THE_CITY_PSP("[PSP] Need for Speed: Carbon - Own the City", "PSP/NFS07", GameGenre.RACING),
-    NEED_FOR_SPEED_PROSTREET_PSP("[PSP] Need for Speed: ProStreet", "PSP/NFS08", GameGenre.RACING),
-    NEED_FOR_SPEED_UNDERCOVER_PSP("[PSP] Need for Speed: Undercover", "PSP/NFS09", GameGenre.RACING),
+    NEED_FOR_SPEED_MOST_WANTED_PC("[PC] Need for Speed: Most Wanted 2005", "PC_NFS06", GameGenre.RACING),
+    NEED_FOR_SPEED_MOST_WANTED_PS2("[PS2] Need for Speed: Most Wanted 2005 (Alpha)", "PS2_NFS06", GameGenre.RACING),
+    NEED_FOR_SPEED_MOST_WANTED_5_1_0_PSP("[PSP] Need for Speed: Most Wanted 5-1-0", "PSP_NFS06", GameGenre.RACING),
+    NEED_FOR_SPEED_CARBON_OWN_THE_CITY_PSP("[PSP] Need for Speed: Carbon - Own the City", "PSP_NFS07", GameGenre.RACING),
+    NEED_FOR_SPEED_PROSTREET_PSP("[PSP] Need for Speed: ProStreet", "PSP_NFS08", GameGenre.RACING),
+    NEED_FOR_SPEED_UNDERCOVER_PSP("[PSP] Need for Speed: Undercover", "PSP_NFS09", GameGenre.RACING),
 
     // HOCKEY genre
-    NHL_07_PSP("[PSP] NHL 07", "PSP/NHL07", GameGenre.HOCKEY),
+    NHL_07_PSP("[PSP] NHL 07", "PSP_NHL07", GameGenre.HOCKEY),
 
     // FPS genre
-    MEDAL_OF_HONOR_HEROES_PSP("[PSP] Medal of Honor: Heroes", "PSP/MOH07", "PSP/MOHGPS071", GameGenre.FPS),
-//    MEDAL_OF_HONOR_HEROES_2_PSP("[PSP] Medal of Honor: Heroes 2", "PSP/MOH08", GameGenre.FPS),
-//    MEDAL_OF_HONOR_HEROES_2_WII("[Wii] Medal of Honor: Heroes 2", "WII/MOH08", GameGenre.FPS),
+    MEDAL_OF_HONOR_HEROES_PSP("[PSP] Medal of Honor: Heroes", "PSP_MOH07", GameGenre.FPS),
+//    MEDAL_OF_HONOR_HEROES_2_PSP("[PSP] Medal of Honor: Heroes 2", "PSP_MOH08", GameGenre.FPS),
+//    MEDAL_OF_HONOR_HEROES_2_WII("[Wii] Medal of Honor: Heroes 2", "WII_MOH08", GameGenre.FPS),
 
     // GOLF genre
-    TIGER_WOODS_PGA_TOUR_07_PSP("[PSP] Tiger Woods PGA Tour 07", "PSP/TW07", GameGenre.GOLF),
-    TIGER_WOODS_PGA_TOUR_08_PSP("[PSP] Tiger Woods PGA Tour 08", "PSP/TW08", GameGenre.GOLF),
-    TIGER_WOODS_PGA_TOUR_10_PSP("[PSP] Tiger Woods PGA Tour 10", "PSP/TEST10", GameGenre.GOLF);
+    TIGER_WOODS_PGA_TOUR_07_PSP("[PSP] Tiger Woods PGA Tour 07", "PSP_TW07", GameGenre.GOLF),
+    TIGER_WOODS_PGA_TOUR_08_PSP("[PSP] Tiger Woods PGA Tour 08", "PSP_TW08", GameGenre.GOLF),
+    TIGER_WOODS_PGA_TOUR_10_PSP("[PSP] Tiger Woods PGA Tour 10", "PSP_TW10", GameGenre.GOLF);
 
     private final String name;
     private final String vers; // Client VERS code

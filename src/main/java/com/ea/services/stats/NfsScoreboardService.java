@@ -43,7 +43,7 @@ import java.util.Objects;
 @RequiredArgsConstructor
 public class NfsScoreboardService {
 
-    private static final String PSP_NFS_06 = "PSP/NFS06"; // Most Wanted
+    private static final String PSP_NFS_06 = "PSP_NFS06"; // Most Wanted
     private static final DateTimeFormatter DATE_FORMATTER = DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm:ss");
     private final TemplateEngine templateEngine;
     private final DiscordBotService discordBotService;
@@ -257,10 +257,10 @@ public class NfsScoreboardService {
         if (carId == null) return "UNKNOWN";
 
         return switch (vers) {
-            case "PSP/NFS06" -> MostWantedCar.getModelName(carId);
-            case "PSP/NFS07" -> CarbonCar.getModelName(carId);
-            case "PSP/NFS08" -> ProStreetCar.getModelName(carId);
-            case "PSP/NFS09" -> UndercoverCar.getModelName(carId);
+            case "PSP_NFS06" -> MostWantedCar.getModelName(carId);
+            case "PSP_NFS07" -> CarbonCar.getModelName(carId);
+            case "PSP_NFS08" -> ProStreetCar.getModelName(carId);
+            case "PSP_NFS09" -> UndercoverCar.getModelName(carId);
             default -> "UNKNOWN";
         };
     }
@@ -272,10 +272,10 @@ public class NfsScoreboardService {
         if (venueId == null) return "UNKNOWN";
 
         return switch (vers) {
-            case "PSP/NFS06" -> MostWantedTrack.getTrackName(venueId);
-            case "PSP/NFS07" -> CarbonTrack.getTrackName(venueId);
-            case "PSP/NFS08" -> ProStreetTrack.getTrackName(venueId);
-            case "PSP/NFS09" -> UndercoverTrack.getTrackName(venueId);
+            case "PSP_NFS06" -> MostWantedTrack.getTrackName(venueId);
+            case "PSP_NFS07" -> CarbonTrack.getTrackName(venueId);
+            case "PSP_NFS08" -> ProStreetTrack.getTrackName(venueId);
+            case "PSP_NFS09" -> UndercoverTrack.getTrackName(venueId);
             default -> "UNKNOWN";
         };
     }
@@ -285,9 +285,9 @@ public class NfsScoreboardService {
      */
     private String getBackgroundImageKey(String vers) {
         return switch (vers) {
-            case "PSP/NFS07" -> "carbonImage";
-            case "PSP/NFS08" -> "prostreetImage";
-            case "PSP/NFS09" -> "undercoverImage";
+            case "PSP_NFS07" -> "carbonImage";
+            case "PSP_NFS08" -> "prostreetImage";
+            case "PSP_NFS09" -> "undercoverImage";
             default -> "mostwantedImage";
         };
     }
