@@ -1,8 +1,10 @@
 # Build stage
 FROM maven:3.9-ibm-semeru-21-jammy AS build
 WORKDIR /usr/local/app
+ARG GITHUB_TOKEN
 COPY . .
-RUN mvn clean package -DskipTests
+COPY .m2/settings.xml /root/.m2/settings.xml
+RUN GITHUB_TOKEN=$GITHUB_TOKEN mvn clean package -DskipTests
 
 # Run stage
 FROM ibm-semeru-runtimes:open-21-jre-jammy

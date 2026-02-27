@@ -5,7 +5,7 @@ import com.ea.entities.core.GameEntity;
 import com.ea.entities.discord.ChannelSubscriptionEntity;
 import com.ea.entities.stats.MohhGameReportEntity;
 import com.ea.enums.GameGenre;
-import com.ea.enums.MapMoHH;
+import com.ea.enums.MohhMap;
 import com.ea.enums.SubscriptionType;
 import com.ea.services.discord.ChannelSubscriptionService;
 import com.ea.services.discord.DiscordBotService;
@@ -196,7 +196,7 @@ public class MohhScoreboardService {
         String gameModeId = params[0];
         context.setVariable("gameModeId", gameModeId);
         context.setVariable("mapHexId", params[1]);
-        context.setVariable("mapName", MapMoHH.getMapNameByHexId(params[1]));
+        context.setVariable("mapName", MohhMap.getMapNameByHexId(params[1]));
         context.setVariable("friendlyFireMode", params[2]);
         context.setVariable("aimAssist", params[3]);
         context.setVariable("ranked", params[8]);
