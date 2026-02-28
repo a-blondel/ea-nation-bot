@@ -1,5 +1,7 @@
 # EA Nation Discord Bot
 
+⚠️ **Discontinued, it is now part of the [EA Nation Server](https://github.com/a-blondel/ea-nation-server) project.**
+
 ## Features
 
 - Discord bot activity
